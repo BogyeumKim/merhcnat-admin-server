@@ -35,3 +35,16 @@ out/
 
 ### VS Code ###
 .vscode/
+
+### 프로젝트 정책: SQL 파일은 올리지 않는다 ###
+*.sql
+
+### OS / 로그 / 비밀 ###
+.DS_Store
+*.log
+logs/
+.env
+.env.*
+application-local.yaml
+application-local.yml
+application-*.properties
