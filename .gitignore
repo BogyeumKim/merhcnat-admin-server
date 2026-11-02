@@ -48,3 +48,6 @@ logs/
 application-local.yaml
 application-local.yml
 application-*.properties
+
+### 프로젝트 정책: md 문서는 사용자가 허가한 것만 올린다 (허가 시 git add -f) ###
+*.md

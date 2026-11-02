@@ -1,11 +1,13 @@
 spring:
   application:
     name: demo
+  profiles:
+    default: local      # 프로필 미지정 시 application-local.yaml(git 제외, DB 비밀번호 등)을 읽는다
   datasource:
     # 로컬 MySQL, 스키마 app
     url: jdbc:mysql://localhost:3306/app?useSSL=false&serverTimezone=Asia/Seoul&characterEncoding=UTF-8&allowPublicKeyRetrieval=true
     username: root
-    password:            # 로컬 root 는 비밀번호 없음
+    password:            # 실제 비밀번호는 application-local.yaml(git 제외)에 둔다. 이 파일에는 절대 넣지 말 것
     driver-class-name: com.mysql.cj.jdbc.Driver
   jackson:
     default-property-inclusion: non_null   # null 필드는 응답에서 제외
