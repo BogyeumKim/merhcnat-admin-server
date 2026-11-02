@@ -1,0 +1,35 @@
+spring:
+  application:
+    name: demo
+  datasource:
+    # 로컬 MySQL, 스키마 app
+    url: jdbc:mysql://localhost:3306/app?useSSL=false&serverTimezone=Asia/Seoul&characterEncoding=UTF-8&allowPublicKeyRetrieval=true
+    username: root
+    password:            # 로컬 root 는 비밀번호 없음
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jackson:
+    default-property-inclusion: non_null   # null 필드는 응답에서 제외
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true                      # user_id <-> userId
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl   # SQL 콘솔 출력(개발용)
+  global-config:
+    db-config:
+      id-type: auto
+
+jwt:
+  # 로컬 개발용 키 (HS256, 32바이트 이상). 운영에서는 환경변수/비밀관리로 교체
+  secret: local-dev-only-secret-key-change-me-0123456789
+  expiration-minutes: 60       # Access-Token 유효시간
+
+auth:
+  max-fail-count: 5            # user.password_fail_count 가 이 값에 도달하면 로그인 차단(관리자 해제). id/pw·OTP 오류 합산
+
+otp:
+  length: 6                    # SMS/카카오 OTP 자릿수
+  challenge-ttl-seconds: 300   # login(1단계) 후 MFA 를 끝내야 하는 제한시간
+  ttl-seconds: 180             # OTP 코드 유효시간
+  resend-seconds: 60           # OTP 재발송 최소 간격
+  hash-secret: local-dev-otp-pepper-change-me   # OTP HMAC 키 (운영에서는 교체)
+  dev-fixed-code: "000000"      # [개발용] loginType 0/1 모두 이 OTP 로 통과. 운영에서는 반드시 삭제(반드시 따옴표로 문자열 유지)

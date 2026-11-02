@@ -1,0 +1,70 @@
+plugins {
+	id 'java'
+	id 'org.springframework.boot' version '4.0.0'          // 항상 Spring Boot 4+ 유지
+	id 'io.spring.dependency-management' version '1.1.7'
+	id 'net.ltgt.errorprone' version '5.2.0'                // NullAway 실행용 Error Prone 플러그인
+}
+
+group = 'com.app'
+version = '0.0.1-SNAPSHOT'
+
+java {
+	toolchain {
+		languageVersion = JavaLanguageVersion.of(25)
+	}
+}
+
+repositories {
+	mavenCentral()
+}
+
+dependencies {
+	implementation 'org.springframework.boot:spring-boot-starter-security'
+	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
+	implementation 'com.baomidou:mybatis-plus-spring-boot4-starter:3.5.18.1'   // MyBatis-Plus (Spring Boot 4 전용 스타터)
+	implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
+	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
+	runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
+	runtimeOnly 'com.mysql:mysql-connector-j'
+
+	// null 안전성: Spring Boot 4 / Spring Framework 7 표준인 JSpecify (@NullMarked, @Nullable)
+	implementation 'org.jspecify:jspecify:1.0.1'
+	// package-info.java(@NullMarked) 없이 컴파일 시점에 null 위반을 오류로 잡는다 (아래 NullAway 설정 참고)
+	errorprone 'com.google.errorprone:error_prone_core:2.52.0'
+	errorprone 'com.uber.nullaway:nullaway:0.14.3'
+
+	compileOnly 'org.projectlombok:lombok'
+	annotationProcessor 'org.projectlombok:lombok'
+	testImplementation 'org.springframework.boot:spring-boot-starter-security-test'
+	testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+	testCompileOnly 'org.projectlombok:lombok'
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+	testAnnotationProcessor 'org.projectlombok:lombok'
+}
+
+tasks.withType(JavaCompile).configureEach {
+	options.compilerArgs.add('-parameters')
+}
+
+import net.ltgt.gradle.errorprone.CheckSeverity
+
+tasks.withType(JavaCompile).configureEach {
+	options.errorprone {
+		// null 위반을 경고가 아닌 컴파일 오류로 처리
+		check('NullAway', CheckSeverity.ERROR)
+		// com.app.demo 이하 전체를 "@Nullable 이 없으면 non-null" 규칙으로 검사 (package-info 불필요)
+		option('NullAway:AnnotatedPackages', 'com.app.demo')
+		// MyBatis/Lombok 엔티티(persistence)는 필드가 null 로 채워질 수 있어 제외
+		option('NullAway:UnannotatedSubPackages', 'com.app.demo.user.infrastructure.persistence')
+		// Lombok 이 만든 코드는 검사하지 않는다
+		option('NullAway:TreatGeneratedAsUnannotated', 'true')
+		// Spring 의존성 주입/테스트 코드는 검사 대상에서 제외
+		if (name.toLowerCase().contains('test')) {
+			disable('NullAway')
+		}
+	}
+}
+
+tasks.named('test') {
+	useJUnitPlatform()
+}
