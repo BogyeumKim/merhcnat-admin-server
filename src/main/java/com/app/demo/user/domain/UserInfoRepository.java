@@ -29,18 +29,17 @@ public interface UserInfoRepository {
 	void saveOtp(String userId, String codeHash, String channel, LocalDateTime expiresAt, LocalDateTime sentAt);
 
 	/**
-	 * OTP 발송 1회를 원자적으로 예약한다. 아래 조건을 모두 만족할 때만 UPDATE 한 문장으로 두 횟수를 +1 하고
+	 * OTP 발송 1회를 원자적으로 예약한다. 아래 조건을 모두 만족할 때만 UPDATE 한 문장으로 발송 횟수를 +1 하고
 	 * 발송 수단·시각을 기록하고 챌린지 유효 시각을 challengeExtendedUntil 로 연장한다(동시 요청이 몰려도 조건을 통과한 1건만 예약된다).
 	 * <ul>
 	 *   <li>챌린지(jti)가 그대로</li>
-	 *   <li>같은 수단의 마지막 발송이 resendAllowedBefore 이전 (재발송 간격)</li>
-	 *   <li>챌린지당·시간당 상한 안 (1시간 창이 비었거나 끝났으면 now 로 새 창 시작)</li>
+	 *   <li>챌린지당 상한 안 (수단 합산)</li>
 	 * </ul>
 	 *
 	 * @return 예약에 성공하면 true, 하나라도 어긋나면 false
 	 */
-	boolean reserveOtpSend(String userId, String jti, String channel, LocalDateTime resendAllowedBefore,
-			int maxPerChallenge, int maxPerHour, LocalDateTime challengeExtendedUntil, LocalDateTime now);
+	boolean reserveOtpSend(String userId, String jti, String channel, int maxPerChallenge,
+			LocalDateTime challengeExtendedUntil, LocalDateTime now);
 
 	/** 저장된 해시가 그대로일 때만 비움(1회용). 성공하면 true */
 	boolean consumeOtp(String userId, String codeHash);

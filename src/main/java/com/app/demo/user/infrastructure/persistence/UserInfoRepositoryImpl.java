@@ -71,23 +71,13 @@ class UserInfoRepositoryImpl implements UserInfoRepository {
 	}
 
 	@Override
-	public boolean reserveOtpSend(String userId, String jti, String channel, LocalDateTime resendAllowedBefore,
-			int maxPerChallenge, int maxPerHour, LocalDateTime challengeExtendedUntil, LocalDateTime now) {
-		LocalDateTime windowExpiredBefore = now.minus(UserInfo.OTP_SEND_WINDOW);
-		// MySQL 은 SET 을 왼쪽부터 평가하므로 otp_window_count 를 먼저 계산해야 이전 otp_window_started_at 기준으로 판단한다.
+	public boolean reserveOtpSend(String userId, String jti, String channel, int maxPerChallenge,
+			LocalDateTime challengeExtendedUntil, LocalDateTime now) {
 		return mapper.update(null, new UpdateWrapper<UserInfoEntity>()
 				.setSql("otp_send_count = otp_send_count + 1")
-				.setSql("otp_window_count = CASE WHEN otp_window_started_at IS NULL OR otp_window_started_at <= {0}"
-						+ " THEN 1 ELSE otp_window_count + 1 END", windowExpiredBefore)
-				.setSql("otp_window_started_at = CASE WHEN otp_window_started_at IS NULL OR otp_window_started_at <= {0}"
-						+ " THEN {1} ELSE otp_window_started_at END", windowExpiredBefore, now)
 				.set("otp_channel", channel).set("otp_sent_at", now).set("mfa_expires_at", challengeExtendedUntil)
 				.eq("user_id", userId).eq("mfa_jti", jti)
-				.apply("(otp_channel IS NULL OR otp_channel <> {0} OR otp_sent_at IS NULL OR otp_sent_at <= {1})",
-						channel, resendAllowedBefore)
-				.lt("otp_send_count", maxPerChallenge)
-				.apply("(otp_window_started_at IS NULL OR otp_window_started_at <= {0} OR otp_window_count < {1})",
-						windowExpiredBefore, maxPerHour)) == 1;
+				.lt("otp_send_count", maxPerChallenge)) == 1;
 	}
 
 	@Override
@@ -151,8 +141,8 @@ class UserInfoRepositoryImpl implements UserInfoRepository {
 	/** 엔티티 → 도메인 (인증 판단에 필요한 값만) */
 	private static UserInfo toDomain(UserInfoEntity e) {
 		return new UserInfo(e.getUserId(), e.getDeviceId(), e.getDeviceSecretHash(), e.getLastTotpStep(), e.getMfaJti(), e.getMfaExpiresAt(),
-				e.getOtpCodeHash(), e.getOtpChannel(), e.getOtpExpiresAt(), e.getOtpSentAt(), e.getLockedAt(), e.getLastOtpChannel(),
-				zeroIfNull(e.getOtpSendCount()), e.getOtpWindowStartedAt(), zeroIfNull(e.getOtpWindowCount()));
+				e.getOtpCodeHash(), e.getOtpChannel(), e.getOtpExpiresAt(), e.getLockedAt(), e.getLastOtpChannel(),
+				zeroIfNull(e.getOtpSendCount()));
 	}
 
 	private static int zeroIfNull(@Nullable Integer value) {

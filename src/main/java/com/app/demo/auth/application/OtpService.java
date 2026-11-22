@@ -47,8 +47,8 @@ public class OtpService {
 	private final Clock clock;
 
 	/**
-	 * 카카오/SMS/이메일로 새 OTP 를 보낸다. 사용자당 유효 OTP 는 1개라 이전 코드(다른 수단으로 보낸 것 포함)는 자동 폐기된다.
-	 * 같은 수단 재발송만 간격 제한을 두고, 수단을 바꾸면 즉시 보낸다. 남용 방지를 위해 챌린지당·시간당 발송 횟수 상한을 둔다.
+	 * 카카오/SMS/이메일로 새 OTP 를 즉시 보낸다(같은 수단 재요청 포함). 사용자당 유효 OTP 는 1개라 이전 코드는 자동 폐기된다.
+	 * 남용 방지는 챌린지당 발송 횟수(수단 합산) 상한 하나로 한다. resendAfterSeconds 는 앱 화면 타이머용 힌트일 뿐 서버는 막지 않는다.
 	 */
 	public OtpSentResult sendOtp(OtpSendCommand cmd) {
 		Challenge ch = challenges.loadMfa(cmd.challengeToken());
@@ -59,14 +59,14 @@ public class OtpService {
 		String destination = channel.contactOf(ch.user())
 				.orElseThrow(() -> new BusinessException(AuthErrorCode.OTP_CHANNEL_INVALID));
 		LocalDateTime now = LocalDateTime.now(clock);
-		reserveSend(ch, channel, now);
+		int remainingSends = reserveSend(ch, channel, now);
 
 		String code = generateCode();
 		// 평문은 저장하지 않고 해시만 저장
 		infos.saveOtp(ch.user().userId(), hasher.hash(ch.user().userId(), code), channel.name(),
 				now.plusSeconds(otpProps.ttlSeconds()), now);
 		sender.send(channel, destination, code);
-		return sentResult(channel, ContactMasking.mask(channel, destination));
+		return sentResult(channel, remainingSends, ContactMasking.mask(channel, destination));
 	}
 
 	/** OTP 검증 → 챌린지 소진 → 로그인 완료. 임시비밀번호·만료된 비밀번호 사용자는 비밀번호 변경 안내(PASSWORD_CHANGE_REQUIRED) */
@@ -134,24 +134,27 @@ public class OtpService {
 	}
 
 	/** [전환 기간] 휴대폰 수단이면 maskedPhone 도 같은 값으로 내려준다. */
-	private OtpSentResult sentResult(OtpChannel channel, String maskedDestination) {
+	private OtpSentResult sentResult(OtpChannel channel, int remainingSends, String maskedDestination) {
 		String maskedPhone = channel.usesPhone() ? maskedDestination : null;
-		return new OtpSentResult(otpProps.ttlSeconds(), otpProps.resendSeconds(), maskedDestination, maskedPhone);
+		return new OtpSentResult(otpProps.ttlSeconds(), otpProps.resendHintSeconds(), remainingSends, maskedDestination, maskedPhone);
 	}
 
 	/**
-	 * 발송 1회를 원자적으로 예약한다(같은 수단 재발송 간격 + 챌린지당·시간당 상한 + 챌린지 일치를 UPDATE 한 문장으로 확인).
-	 * 동시에 같은 수단으로 여러 번 요청해도 1건만 발송된다. 예약에 실패하면 어떤 규칙에 걸렸는지 다시 읽어 알려 준다.
+	 * 발송 1회를 원자적으로 예약한다(챌린지당 상한 + 챌린지 일치를 UPDATE 한 문장으로 확인).
+	 * 동시에 여러 번 요청해도 상한을 넘겨 발송되지 않는다. 예약에 실패하면 어떤 규칙에 걸렸는지 다시 읽어 알려 준다.
 	 * 예약과 함께 챌린지 유효 시각을 연장한다.
+	 *
+	 * @return 이 챌린지에서 남은 발송 횟수
 	 */
-	private void reserveSend(Challenge ch, OtpChannel channel, LocalDateTime now) {
+	private int reserveSend(Challenge ch, OtpChannel channel, LocalDateTime now) {
 		String userId = ch.user().userId();
 		boolean reserved = infos.reserveOtpSend(userId, ch.claims().jti(), channel.name(),
-				now.minusSeconds(otpProps.resendSeconds()), otpProps.maxSendsPerChallenge(), otpProps.maxSendsPerHour(),
-				extendedChallengeExpiry(ch, now), now);
+				otpProps.maxSendsPerChallenge(), extendedChallengeExpiry(ch, now), now);
+		UserInfo after = infos.findOrCreate(userId);
 		if (!reserved) {
-			throw sendRejection(infos.findOrCreate(userId), channel, now);
+			throw sendRejection(after);
 		}
+		return after.remainingChallengeSends(otpProps.maxSendsPerChallenge());
 	}
 
 	/**
@@ -168,18 +171,10 @@ public class OtpService {
 		return wanted.isBefore(cap) ? wanted : cap;
 	}
 
-	/** 예약 실패 사유: 같은 수단 재발송 간격(429) → 챌린지당 상한(429) → 시간당 상한(429) → 그 외는 챌린지가 바뀐 경우(401) */
-	private BusinessException sendRejection(UserInfo info, OtpChannel channel, LocalDateTime now) {
-		long resendWait = info.resendWaitSeconds(channel.name(), now, otpProps.resendSeconds());
-		if (resendWait > 0) {
-			return new BusinessException(AuthErrorCode.OTP_RESEND_TOO_SOON, ErrorData.retryAfter(resendWait));
-		}
+	/** 예약 실패 사유: 챌린지당 상한(429, data 없음) → 그 외는 챌린지가 바뀐 경우(401) */
+	private BusinessException sendRejection(UserInfo info) {
 		if (info.hasReachedChallengeSendLimit(otpProps.maxSendsPerChallenge())) {
 			return new BusinessException(AuthErrorCode.OTP_SEND_LIMIT_EXCEEDED);
-		}
-		long hourlyWait = info.hourlySendLimitWaitSeconds(now, otpProps.maxSendsPerHour());
-		if (hourlyWait > 0) {
-			return new BusinessException(AuthErrorCode.OTP_HOURLY_SEND_LIMIT_EXCEEDED, ErrorData.retryAfter(hourlyWait));
 		}
 		return new BusinessException(AuthErrorCode.CHALLENGE_EXPIRED);
 	}

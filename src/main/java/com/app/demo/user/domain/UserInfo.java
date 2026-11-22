@@ -1,7 +1,6 @@
 package com.app.demo.user.domain;
 
 import com.app.demo.global.security.Sha256;
-import java.time.Duration;
 import java.time.LocalDateTime;
 import org.jspecify.annotations.Nullable;
 
@@ -16,12 +15,9 @@ import org.jspecify.annotations.Nullable;
  * @param mfaExpiresAt   현재 챌린지의 실제 유효 시각. MFA 챌린지는 OTP 발송 때마다 연장된다(토큰 만료가 절대 상한)
  * @param otpCodeHash    SMS/카카오 OTP 해시. 평문은 저장하지 않는다
  * @param otpChannel     SMS | KAKAO | EMAIL
- * @param otpSentAt      마지막 OTP 발송 시각 (재발송 제한)
  * @param lockedAt       계정이 잠긴 시각 (잠금 화면 표시용)
  * @param lastOtpChannel 마지막으로 인증에 성공한 수단 (TOTP | KAKAO | SMS | EMAIL, "최근 사용" 표시용)
- * @param otpSendCount   현재 MFA 챌린지에서 보낸 OTP 횟수 (새 챌린지 발급 시 0)
- * @param otpWindowStartedAt 시간당 발송 상한을 세는 1시간 창의 시작 시각
- * @param otpWindowCount 현재 1시간 창에서 보낸 OTP 횟수
+ * @param otpSendCount   현재 MFA 챌린지에서 보낸 OTP 횟수(수단 합산, 새 챌린지 발급 시 0)
  */
 public record UserInfo(
 		String userId,
@@ -33,15 +29,9 @@ public record UserInfo(
 		@Nullable String otpCodeHash,
 		@Nullable String otpChannel,
 		@Nullable LocalDateTime otpExpiresAt,
-		@Nullable LocalDateTime otpSentAt,
 		@Nullable LocalDateTime lockedAt,
 		@Nullable String lastOtpChannel,
-		int otpSendCount,
-		@Nullable LocalDateTime otpWindowStartedAt,
-		int otpWindowCount) {
-
-	/** 시간당 발송 상한을 세는 창의 길이 */
-	public static final Duration OTP_SEND_WINDOW = Duration.ofHours(1);
+		int otpSendCount) {
 
 	/** 이 기기가 현재 등록된 기기인지 */
 	public boolean hasDevice(String candidateDeviceId) {
@@ -71,25 +61,14 @@ public record UserInfo(
 		return otpCodeHash != null && channel.equals(otpChannel) && otpExpiresAt != null && !otpExpiresAt.isBefore(now);
 	}
 
-	/** 같은 수단으로 재발송하기까지 남은 대기 초. 다른 수단이거나 0 이하이면 즉시 발송 가능 */
-	public long resendWaitSeconds(String channel, LocalDateTime now, long intervalSeconds) {
-		if (otpSentAt == null || !channel.equals(otpChannel)) {
-			return 0;
-		}
-		return intervalSeconds - Duration.between(otpSentAt, now).toSeconds();
-	}
 
 	/** 현재 챌린지의 발송 횟수가 상한에 도달했는지 */
 	public boolean hasReachedChallengeSendLimit(int maxSends) {
 		return otpSendCount >= maxSends;
 	}
 
-	/** 시간당 발송 상한에 걸렸다면 창이 끝날 때까지 남은 초, 아니면 0 */
-	public long hourlySendLimitWaitSeconds(LocalDateTime now, int maxSends) {
-		if (otpWindowStartedAt == null || otpWindowCount < maxSends) {
-			return 0;
-		}
-		long remaining = Duration.between(now, otpWindowStartedAt.plus(OTP_SEND_WINDOW)).toSeconds();
-		return Math.max(remaining, 0);
+	/** 현재 챌린지에서 더 보낼 수 있는 횟수 (0 이상) */
+	public int remainingChallengeSends(int maxSends) {
+		return Math.max(maxSends - otpSendCount, 0);
 	}
 }

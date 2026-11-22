@@ -55,6 +55,5 @@ otp:
   challenge-ttl-seconds: 300   # login(1단계) 후 MFA 를 끝내야 하는 기본 제한시간(OTP 발송 때마다 OTP 만료 + 60초까지 연장)
   challenge-max-seconds: 900   # MFA 챌린지 절대 상한(로그인 시점 기준 15분). 연장해도 넘지 않는다
   ttl-seconds: 180             # OTP 코드 유효시간
-  resend-seconds: 60           # 같은 수단 재발송 최소 간격(다른 수단으로 바꾸면 즉시 발송)
-  max-sends-per-challenge: 5   # 로그인(챌린지) 1회당 최대 발송 횟수
-  max-sends-per-hour: 10       # 사용자당 1시간 최대 발송 횟수
+  resend-hint-seconds: 60     # 앱 "N초 후 다시 받기" 타이머 힌트(resendAfterSeconds). 서버는 이 값으로 막지 않는다
+  max-sends-per-challenge: 5   # 로그인(챌린지) 1회당 최대 발송 횟수(수단 합산). 넘으면 처음부터 다시 로그인

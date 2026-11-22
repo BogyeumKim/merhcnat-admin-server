@@ -47,6 +47,4 @@ public class UserInfoEntity {
 	private LocalDateTime otpSentAt;
 	private String lastOtpChannel;
 	private Integer otpSendCount;
-	private LocalDateTime otpWindowStartedAt;
-	private Integer otpWindowCount;
 }

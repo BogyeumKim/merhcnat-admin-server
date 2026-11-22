@@ -28,9 +28,7 @@ public enum AuthErrorCode implements ErrorCode {
 	OTP_EXPIRED(HttpStatus.UNAUTHORIZED, "OTP_EXPIRED", "인증번호가 만료되었습니다. 다시 요청해 주세요."),
 	OTP_CHANNEL_INVALID(HttpStatus.BAD_REQUEST, "OTP_CHANNEL_INVALID", "허용되지 않는 인증 수단입니다."),
 	OTP_CHANNEL_NOT_SENDABLE(HttpStatus.BAD_REQUEST, "OTP_CHANNEL_INVALID", "TOTP는 발송이 필요 없습니다."),
-	OTP_RESEND_TOO_SOON(HttpStatus.TOO_MANY_REQUESTS, "OTP_RESEND_TOO_SOON", "잠시 후 다시 요청해 주세요."),
 	OTP_SEND_LIMIT_EXCEEDED(HttpStatus.TOO_MANY_REQUESTS, "OTP_SEND_LIMIT_EXCEEDED", "발송 횟수를 초과했습니다. 처음부터 다시 로그인해 주세요."),
-	OTP_HOURLY_SEND_LIMIT_EXCEEDED(HttpStatus.TOO_MANY_REQUESTS, "OTP_SEND_LIMIT_EXCEEDED", "발송 횟수를 초과했습니다. 잠시 후 다시 시도해 주세요."),
 	TOTP_NOT_ENROLLED(HttpStatus.CONFLICT, "TOTP_NOT_ENROLLED", "TOTP가 등록되지 않았습니다."),
 
 	// 비밀번호
