@@ -5,7 +5,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -15,7 +14,7 @@ class AppStatusTest {
 	private static final LocalDateTime T0 = LocalDateTime.of(2026, 11, 23, 2, 0);
 
 	private static AppStatus status(MaintenanceWindow... windows) {
-		return new AppStatus(List.of(windows), Map.of());
+		return new AppStatus(List.of(windows), List.of());
 	}
 
 	private static MaintenanceWindow window(int fromHour, int toHour) {

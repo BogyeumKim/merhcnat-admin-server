@@ -11,12 +11,11 @@ import com.app.demo.appstatus.domain.AppPlatform;
 import com.app.demo.appstatus.domain.AppStatus;
 import com.app.demo.appstatus.domain.AppVersion;
 import com.app.demo.appstatus.domain.MaintenanceWindow;
-import com.app.demo.appstatus.domain.VersionPolicy;
+import com.app.demo.appstatus.domain.VersionRelease;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,8 +30,9 @@ import org.springframework.test.web.servlet.MockMvc;
 @AutoConfigureMockMvc
 class AppAccessFilterTest {
 
-	private static final VersionPolicy IOS_MIN_2 =
-			new VersionPolicy(AppPlatform.IOS, AppVersion.parse("2.0.0").orElseThrow());
+	/** 이미 적용 중인 iOS 필수 버전 2.0.0 */
+	private static final VersionRelease IOS_MIN_2 =
+			new VersionRelease(AppPlatform.IOS, AppVersion.parse("2.0.0").orElseThrow(), LocalDateTime.of(2026, 1, 1, 0, 0));
 
 	@Autowired
 	MockMvc mvc;
@@ -44,7 +44,7 @@ class AppAccessFilterTest {
 	AppStatusSnapshot snapshot;
 
 	private void stubStatus(MaintenanceWindow... windows) {
-		given(snapshot.current()).willReturn(new AppStatus(List.of(windows), Map.of(AppPlatform.IOS, IOS_MIN_2)));
+		given(snapshot.current()).willReturn(new AppStatus(List.of(windows), List.of(IOS_MIN_2)));
 	}
 
 	/** 지금 기준 (분 단위) 점검 기간 */
@@ -124,7 +124,7 @@ class AppAccessFilterTest {
 	}
 
 	@Test
-	@DisplayName("정책이 없는 플랫폼은 통과")
+	@DisplayName("적용 중인 필수 버전이 없는 플랫폼은 통과")
 	void platformWithoutPolicyPasses() throws Exception {
 		stubStatus();
 		mvc.perform(get("/api/home/summary").header("X-App-Platform", "ANDROID").header("X-App-Version", "0.0.1"))

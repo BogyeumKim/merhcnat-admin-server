@@ -13,9 +13,6 @@ import lombok.Setter;
 @TableName("app_maintenance")
 public class AppMaintenanceEntity {
 
-	/** use_flg 사용 값 */
-	public static final int USE = 1;
-
 	@TableId(value = "id", type = IdType.AUTO)
 	private Long id;
 	private LocalDateTime frDt;

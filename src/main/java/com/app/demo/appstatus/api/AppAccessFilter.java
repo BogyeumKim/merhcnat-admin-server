@@ -6,7 +6,7 @@ import com.app.demo.appstatus.application.AccessDecision;
 import com.app.demo.appstatus.application.AppAccessService;
 import com.app.demo.appstatus.config.AppStatusProperties;
 import com.app.demo.appstatus.domain.MaintenanceWindow;
-import com.app.demo.appstatus.domain.VersionPolicy;
+import com.app.demo.appstatus.domain.VersionRelease;
 import com.app.demo.appstatus.exception.AppStatusErrorCode;
 import com.app.demo.global.api.ErrorResponseWriter;
 import com.app.demo.global.exception.CommonErrorCode;
@@ -57,7 +57,7 @@ public class AppAccessFilter extends OncePerRequestFilter {
 		switch (access.decide(maintenanceApplies, request.getHeader(PLATFORM_HEADER), request.getHeader(VERSION_HEADER))) {
 			case AccessDecision.Allowed() -> chain.doFilter(request, response);
 			case AccessDecision.UnderMaintenance(var window) -> writeMaintenance(response, window);
-			case AccessDecision.UpdateRequired(var policy) -> writeUpdateRequired(response, policy);
+			case AccessDecision.UpdateRequired(var required) -> writeUpdateRequired(response, required);
 			case AccessDecision.InvalidClientHeaders() -> {
 				log.warn("[{}] {} - invalid app version headers", CommonErrorCode.INVALID_INPUT.getCode(), LogSafe.target(request));
 				writer.write(response, CommonErrorCode.INVALID_INPUT);
@@ -70,9 +70,9 @@ public class AppAccessFilter extends OncePerRequestFilter {
 				new MaintenanceData(isoWithOffset(window.from()), isoWithOffset(window.to())));
 	}
 
-	private void writeUpdateRequired(HttpServletResponse response, VersionPolicy policy) throws IOException {
+	private void writeUpdateRequired(HttpServletResponse response, VersionRelease required) throws IOException {
 		writer.write(response, AppStatusErrorCode.UPDATE_REQUIRED, AppStatusErrorCode.UPDATE_REQUIRED.getMessage(),
-				new UpdateRequiredData(policy.minVersion().toString()));
+				new UpdateRequiredData(required.version().toString()));
 	}
 
 	private String isoWithOffset(LocalDateTime time) {
