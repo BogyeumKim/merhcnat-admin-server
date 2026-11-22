@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/check-java-conventions.sh",
+            "timeout": 15,
+            "statusMessage": "Java 코드 규칙 검사"
+          }
+        ]
+      }
+    ]
+  }
+}
