@@ -2,6 +2,7 @@ package com.app.demo.global.exception;
 
 import com.app.demo.global.api.ApiResponse;
 import com.app.demo.global.api.ErrorData;
+import com.app.demo.global.api.ErrorDetail;
 import com.app.demo.global.security.AuthAuditContext;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
@@ -45,7 +46,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
 	/** 도메인/인증 오류: ErrorCode 의 status·code·message 그대로 응답한다. */
 	@ExceptionHandler(BusinessException.class)
-	public ResponseEntity<ApiResponse<Object>> handleBusiness(BusinessException e, HttpServletRequest request) {
+	public ResponseEntity<ApiResponse<ErrorDetail>> handleBusiness(BusinessException e, HttpServletRequest request) {
 		ErrorCode errorCode = e.getErrorCode();
 		log.warn("[{}] {} - {}", errorCode.getCode(), LogSafe.target(request), errorCode.getMessage());
 		return respond(errorCode, e.getData());
@@ -53,14 +54,14 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
 	/** 메서드 보안 등 컨트롤러 안에서 발생한 인가 실패 → 403 */
 	@ExceptionHandler(AccessDeniedException.class)
-	public ResponseEntity<ApiResponse<Object>> handleAccessDenied(AccessDeniedException e, HttpServletRequest request) {
+	public ResponseEntity<ApiResponse<ErrorDetail>> handleAccessDenied(AccessDeniedException e, HttpServletRequest request) {
 		log.warn("[{}] {}", CommonErrorCode.FORBIDDEN.getCode(), LogSafe.target(request));
 		return respond(CommonErrorCode.FORBIDDEN, null);
 	}
 
 	/** 예상하지 못한 오류 → 500. 내부 내용은 응답에 노출하지 않고 로그로만 남긴다. */
 	@ExceptionHandler(Exception.class)
-	public ResponseEntity<ApiResponse<Object>> handleUnexpected(Exception e, HttpServletRequest request) {
+	public ResponseEntity<ApiResponse<ErrorDetail>> handleUnexpected(Exception e, HttpServletRequest request) {
 		log.error("[{}] {}", CommonErrorCode.INTERNAL_ERROR.getCode(), LogSafe.target(request), e);
 		return respond(CommonErrorCode.INTERNAL_ERROR, null);
 	}
@@ -106,8 +107,12 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 		return toResponse(ex, CommonErrorCode.fromStatus(statusCode.value()), null, headers, request);
 	}
 
-	/** Spring MVC 예외용: 로그를 남기고 봉투로 감싼다. */
-	private static ResponseEntity<Object> toResponse(Exception ex, ErrorCode errorCode, @Nullable Object data, HttpHeaders headers,
+	/**
+	 * Spring MVC 예외용: 로그를 남기고 봉투로 감싼다.
+	 * 반환 타입이 {@code ResponseEntity<Object>} 인 것은 부모 {@link ResponseEntityExceptionHandler} 의 재정의 메서드 시그니처를
+	 * 따라야 하기 때문이며, 본문은 항상 {@code ApiResponse<ErrorDetail>} 이다.
+	 */
+	private static ResponseEntity<Object> toResponse(Exception ex, ErrorCode errorCode, @Nullable ErrorDetail data, HttpHeaders headers,
 			WebRequest request) {
 		String target = request instanceof ServletWebRequest web
 				? LogSafe.target(web.getRequest())
@@ -122,7 +127,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 				.body(ApiResponse.error(errorCode, data));
 	}
 
-	private static ResponseEntity<ApiResponse<Object>> respond(ErrorCode errorCode, @Nullable Object data) {
+	private static ResponseEntity<ApiResponse<ErrorDetail>> respond(ErrorCode errorCode, @Nullable ErrorDetail data) {
 		AuthAuditContext.result(errorCode.getCode()); // 인증 경로면 감사 로그에 결과 code 로 남는다
 		return ResponseEntity.status(errorCode.getStatus()).contentType(MediaType.APPLICATION_JSON)
 				.body(ApiResponse.error(errorCode, data));

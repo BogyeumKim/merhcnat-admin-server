@@ -25,7 +25,7 @@ public class ErrorResponseWriter {
 	}
 
 	/** 상황별 문구·부가 정보(data)를 담아 쓴다. data 가 null 이면 응답에서 제외된다. */
-	public void write(HttpServletResponse response, ErrorCode errorCode, String message, @Nullable Object data) throws IOException {
+	public void write(HttpServletResponse response, ErrorCode errorCode, String message, @Nullable ErrorDetail data) throws IOException {
 		response.setStatus(errorCode.getStatus().value());
 		response.setContentType(MediaType.APPLICATION_JSON_VALUE);
 		response.setCharacterEncoding(StandardCharsets.UTF_8.name());

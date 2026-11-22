@@ -1,5 +1,7 @@
 package com.app.demo.global.exception;
 
+import com.app.demo.global.api.ErrorDetail;
+
 import lombok.Getter;
 import org.jspecify.annotations.Nullable;
 
@@ -11,14 +13,14 @@ import org.jspecify.annotations.Nullable;
 public class BusinessException extends RuntimeException {
 
 	private final ErrorCode errorCode;
-	/** 앱에 함께 내려줄 부가 정보(남은 시도 횟수, 챌린지 토큰 등). 없으면 응답에서 제외된다. */
-	private final @Nullable Object data;
+	/** 앱에 함께 내려줄 부가 정보(남은 시도 횟수, 잠금 시각 등). 없으면 응답에서 제외된다. */
+	private final @Nullable ErrorDetail data;
 
 	public BusinessException(ErrorCode errorCode) {
 		this(errorCode, null);
 	}
 
-	public BusinessException(ErrorCode errorCode, @Nullable Object data) {
+	public BusinessException(ErrorCode errorCode, @Nullable ErrorDetail data) {
 		super(errorCode.getMessage());
 		this.errorCode = errorCode;
 		this.data = data;

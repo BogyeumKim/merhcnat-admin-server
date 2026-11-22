@@ -48,7 +48,7 @@ public class PasswordService {
 	/**
 	 * 로그인 사용자의 비밀번호 변경: 현재 비밀번호 확인 → 새 비밀번호 규칙/재사용 검사 → 저장 → 오류 횟수 초기화 → 세션 교체.
 	 *
-	 * @return 교체된 세션의 새 Access-Token (응답의 Access-Token 헤더로 내려간다)
+	 * @return 교체된 세션의 새 Access-Token (응답 본문 data.accessToken 으로 내려간다)
 	 */
 	public AccessToken change(AuthUser auth, String currentPassword, String newPassword) {
 		String deviceIdHash = requireDeviceBinding(auth);

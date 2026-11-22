@@ -14,7 +14,7 @@ import org.jspecify.annotations.Nullable;
  */
 public record ErrorData(@Nullable Integer remainingAttempts, @Nullable List<String> violations,
 		@Nullable String userIdMasked, @Nullable String lockedAt,
-		@Nullable List<FieldError> fieldErrors) {
+		@Nullable List<FieldError> fieldErrors) implements ErrorDetail {
 
 	/** 요청 값 검증 실패 항목 */
 	public record FieldError(String field, String reason) {

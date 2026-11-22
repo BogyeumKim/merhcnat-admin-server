@@ -31,17 +31,17 @@ public record ApiResponse<T>(String code, String message, @Nullable T data) {
 	}
 
 	/** 오류 응답 (data 없음) */
-	public static <T> ApiResponse<T> error(ErrorCode errorCode) {
+	public static ApiResponse<ErrorDetail> error(ErrorCode errorCode) {
 		return error(errorCode, null);
 	}
 
-	/** 오류 응답. 오류 봉투는 반드시 이 메서드로 만든다. */
-	public static <T> ApiResponse<T> error(ErrorCode errorCode, @Nullable T data) {
+	/** 오류 응답. 오류 봉투는 반드시 이 메서드로 만든다. data 는 {@link ErrorDetail} 구현 타입만 받는다. */
+	public static ApiResponse<ErrorDetail> error(ErrorCode errorCode, @Nullable ErrorDetail data) {
 		return error(errorCode, errorCode.getMessage(), data);
 	}
 
-	/** 오류 응답(운영자가 정한 안내 문구 등 상황별 문구를 쓸 때. 예: 점검 안내) */
-	public static <T> ApiResponse<T> error(ErrorCode errorCode, String message, @Nullable T data) {
+	/** 오류 응답(상황별 문구를 쓸 때) */
+	public static ApiResponse<ErrorDetail> error(ErrorCode errorCode, String message, @Nullable ErrorDetail data) {
 		return new ApiResponse<>(errorCode.getCode(), message, data);
 	}
 }
