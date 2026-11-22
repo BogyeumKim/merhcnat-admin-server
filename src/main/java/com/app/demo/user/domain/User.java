@@ -1,5 +1,7 @@
 package com.app.demo.user.domain;
 
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import org.jspecify.annotations.Nullable;
 
@@ -10,6 +12,10 @@ import org.jspecify.annotations.Nullable;
  * @param password          평문 비교(로컬 전용, 운영 전 해시 전환 필요)
  * @param loginTypeCode     0: TOTP, 1: 카카오/SMS
  * @param passwordFailCount id/pw·OTP 오류 누적 횟수
+ * @param lastChangePw      마지막 비밀번호 변경 시각 (기록이 없으면 null)
+ * @param oldPasswords      이전 비밀번호 최대 3개 (최신순, 비어 있는 칸은 제외)
+ * @param useType           이용 상태 (사용/정지/삭제)
+ * @param tempPassword      true 면 발급받은 임시비밀번호 (변경 전에는 로그인 완료 불가)
  */
 public record User(
 		String userId,
@@ -18,7 +24,19 @@ public record User(
 		@Nullable Integer userType,
 		int passwordFailCount,
 		@Nullable String phoneNumber,
-		@Nullable String totpSecret) {
+		@Nullable String totpSecret,
+		@Nullable LocalDateTime lastChangePw,
+		List<String> oldPasswords,
+		UseType useType,
+		boolean tempPassword) {
+
+	public boolean isSuspended() {
+		return useType == UseType.SUSPENDED;
+	}
+
+	public boolean isDeleted() {
+		return useType == UseType.DELETED;
+	}
 
 	/** 누적 오류가 한도 이상이면 잠금 (올바른 비밀번호/OTP 여도 거부) */
 	public boolean isLocked(int maxFailCount) {
@@ -27,6 +45,16 @@ public record User(
 
 	public boolean passwordMatches(String raw) {
 		return password != null && password.equals(raw);
+	}
+
+	/** 재사용 금지: 현재 비밀번호 또는 이전 비밀번호(최근 3개)와 같으면 true */
+	public boolean passwordReused(String raw) {
+		return passwordMatches(raw) || oldPasswords.contains(raw);
+	}
+
+	/** 마지막 변경 후 expireDays 일이 지났으면 비밀번호 변경 필요 (변경 기록이 없으면 필요하지 않은 것으로 본다) */
+	public boolean passwordChangeRequired(LocalDateTime now, int expireDays) {
+		return lastChangePw != null && lastChangePw.plusDays(expireDays).isBefore(now);
 	}
 
 	/** 지원하지 않는 유형이면 empty */

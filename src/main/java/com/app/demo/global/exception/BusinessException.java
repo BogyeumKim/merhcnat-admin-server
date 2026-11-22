@@ -1,42 +1,26 @@
 package com.app.demo.global.exception;
 
+import lombok.Getter;
 import org.jspecify.annotations.Nullable;
-import org.springframework.http.HttpStatus;
 
-/** 비즈니스 오류. HTTP status + 공통 봉투의 code/message/data 로 변환된다. */
+/**
+ * 비즈니스 오류. 검증에 실패한 지점에서 바로 던지고(fail-fast), {@link GlobalExceptionHandler} 가
+ * {@link ErrorCode} 의 HTTP status + 공통 봉투(code/message/data)로 변환한다.
+ */
+@Getter
 public class BusinessException extends RuntimeException {
 
-	private final HttpStatus status;
-	private final String code;
+	private final ErrorCode errorCode;
+	/** 앱에 함께 내려줄 부가 정보(남은 시도 횟수, 챌린지 토큰 등). 없으면 응답에서 제외된다. */
 	private final @Nullable Object data;
 
-	public BusinessException(HttpStatus status, String code, String message) {
-		this(status, code, message, null);
+	public BusinessException(ErrorCode errorCode) {
+		this(errorCode, null);
 	}
 
-	public BusinessException(HttpStatus status, String code, String message, @Nullable Object data) {
-		super(message);
-		this.status = status;
-		this.code = code;
+	public BusinessException(ErrorCode errorCode, @Nullable Object data) {
+		super(errorCode.getMessage());
+		this.errorCode = errorCode;
 		this.data = data;
-	}
-
-	/** 생성자에서 항상 메시지를 받으므로 null 이 아니다 (부모 시그니처는 @Nullable). */
-	@Override
-	public String getMessage() {
-		String m = super.getMessage();
-		return m == null ? "" : m;
-	}
-
-	public HttpStatus status() {
-		return status;
-	}
-
-	public String code() {
-		return code;
-	}
-
-	public @Nullable Object data() {
-		return data;
 	}
 }

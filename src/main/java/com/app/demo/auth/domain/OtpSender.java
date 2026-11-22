@@ -4,6 +4,8 @@ package com.app.demo.auth.domain;
 public interface OtpSender {
 
 	/**
+	 * OTP 평문을 사용자에게 발송한다.
+	 *
 	 * @param channel     KAKAO | SMS
 	 * @param phoneNumber 수신 번호
 	 * @param code        평문 OTP

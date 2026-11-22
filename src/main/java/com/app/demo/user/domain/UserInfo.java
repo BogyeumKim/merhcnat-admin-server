@@ -14,6 +14,7 @@ import org.jspecify.annotations.Nullable;
  * @param otpCodeHash    SMS/카카오 OTP 해시. 평문은 저장하지 않는다
  * @param otpChannel     SMS | KAKAO
  * @param otpSentAt      마지막 OTP 발송 시각 (재발송 제한)
+ * @param lockedAt       계정이 잠긴 시각 (잠금 화면 표시용)
  */
 public record UserInfo(
 		String userId,
@@ -23,7 +24,8 @@ public record UserInfo(
 		@Nullable String otpCodeHash,
 		@Nullable String otpChannel,
 		@Nullable LocalDateTime otpExpiresAt,
-		@Nullable LocalDateTime otpSentAt) {
+		@Nullable LocalDateTime otpSentAt,
+		@Nullable LocalDateTime lockedAt) {
 
 	/** 이 기기가 현재 등록된 기기인지 */
 	public boolean hasDevice(String candidateDeviceId) {
@@ -50,6 +52,6 @@ public record UserInfo(
 		if (otpSentAt == null) {
 			return 0;
 		}
-		return intervalSeconds - Duration.between(otpSentAt, now).getSeconds();
+		return intervalSeconds - Duration.between(otpSentAt, now).toSeconds();
 	}
 }

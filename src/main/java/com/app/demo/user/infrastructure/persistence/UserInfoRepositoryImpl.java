@@ -6,19 +6,17 @@ import com.app.demo.user.domain.UserInfoRepository;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import java.time.LocalDateTime;
+import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.Nullable;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Repository;
 
 /** {@link UserInfoRepository} 의 MyBatis-Plus 구현. */
 @Repository
+@RequiredArgsConstructor
 class UserInfoRepositoryImpl implements UserInfoRepository {
 
 	private final UserInfoMapper mapper;
-
-	UserInfoRepositoryImpl(UserInfoMapper mapper) {
-		this.mapper = mapper;
-	}
 
 	@Override
 	public UserInfo findOrCreate(String userId) {
@@ -28,7 +26,7 @@ class UserInfoRepositoryImpl implements UserInfoRepository {
 			created.setUserId(userId);
 			try {
 				mapper.insert(created); // null 필드는 건너뛰어 DB 기본값 적용
-			} catch (DuplicateKeyException ignored) {
+			} catch (DuplicateKeyException _) {
 				// 동시 생성 경합: 이미 만들어졌으므로 아래에서 다시 조회
 			}
 			e = mapper.selectById(userId);
@@ -39,6 +37,17 @@ class UserInfoRepositoryImpl implements UserInfoRepository {
 	@Override
 	public boolean existsByDeviceId(String deviceId) {
 		return mapper.selectCount(new QueryWrapper<UserInfoEntity>().eq("device_id", deviceId)) > 0;
+	}
+
+	@Override
+	public @Nullable String findUserIdByDeviceId(String deviceId) {
+		UserInfoEntity e = mapper.selectOne(new QueryWrapper<UserInfoEntity>().eq("device_id", deviceId).last("limit 1"));
+		return e == null ? null : e.getUserId();
+	}
+
+	@Override
+	public void markLocked(String userId, LocalDateTime at) {
+		mapper.update(null, new UpdateWrapper<UserInfoEntity>().eq("user_id", userId).set("locked_at", at));
 	}
 
 	@Override
@@ -113,6 +122,6 @@ class UserInfoRepositoryImpl implements UserInfoRepository {
 	/** 엔티티 → 도메인 (인증 판단에 필요한 값만) */
 	private static UserInfo toDomain(UserInfoEntity e) {
 		return new UserInfo(e.getUserId(), e.getDeviceId(), e.getLastTotpStep(), e.getMfaJti(),
-				e.getOtpCodeHash(), e.getOtpChannel(), e.getOtpExpiresAt(), e.getOtpSentAt());
+				e.getOtpCodeHash(), e.getOtpChannel(), e.getOtpExpiresAt(), e.getOtpSentAt(), e.getLockedAt());
 	}
 }

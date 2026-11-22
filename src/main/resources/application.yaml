@@ -26,6 +26,7 @@ jwt:
   expiration-minutes: 60       # Access-Token 유효시간
 
 auth:
+  password-expire-days: 90     # 마지막 비밀번호 변경 후 이 일수가 지나면 변경 필수(건너뛰기 불가)
   max-fail-count: 5            # user.password_fail_count 가 이 값에 도달하면 로그인 차단(관리자 해제). id/pw·OTP 오류 합산
 
 otp:

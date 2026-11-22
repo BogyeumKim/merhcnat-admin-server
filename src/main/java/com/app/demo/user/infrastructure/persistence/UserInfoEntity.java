@@ -36,6 +36,7 @@ public class UserInfoEntity {
 
 	// 인증 진행 상태
 	private LocalDateTime lastLoginAt;
+	private LocalDateTime lockedAt;
 	private Long lastTotpStep;
 	private String mfaJti;
 	private String otpCodeHash;

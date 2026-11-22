@@ -1,9 +1,9 @@
 package com.app.demo.auth.infrastructure;
 
 import com.app.demo.auth.config.JwtProperties;
-import com.app.demo.auth.domain.AuthUser;
 import com.app.demo.auth.domain.MfaClaims;
 import com.app.demo.auth.domain.TokenProvider;
+import com.app.demo.global.security.AuthUser;
 import com.app.demo.user.domain.DeviceInfo;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtBuilder;
@@ -11,6 +11,9 @@ import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import java.nio.charset.StandardCharsets;
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Date;
 import java.util.Optional;
 import javax.crypto.SecretKey;
@@ -30,22 +33,24 @@ class JwtTokenProvider implements TokenProvider {
 	private static final String TYP = "typ";
 
 	private final SecretKey key;
-	private final long expirationMinutes;
+	private final Duration accessTokenTtl;
+	private final Clock clock;
 
-	JwtTokenProvider(JwtProperties props) {
+	JwtTokenProvider(JwtProperties props, Clock clock) {
 		this.key = Keys.hmacShaKeyFor(props.secret().getBytes(StandardCharsets.UTF_8));
-		this.expirationMinutes = props.expirationMinutes();
+		this.accessTokenTtl = Duration.ofMinutes(props.expirationMinutes());
+		this.clock = clock;
 	}
 
 	@Override
 	public String createAccessToken(String userId, @Nullable Integer userType, String deviceId) {
-		Date now = new Date();
+		Instant now = clock.instant();
 		JwtBuilder b = Jwts.builder()
 				.subject(userId)
 				.claim(TYP, "access")
 				.claim("deviceId", deviceId)
-				.issuedAt(now)
-				.expiration(new Date(now.getTime() + expirationMinutes * 60_000));
+				.issuedAt(Date.from(now))
+				.expiration(Date.from(now.plus(accessTokenTtl)));
 		if (userType != null) {
 			b.claim("userType", userType);
 		}
@@ -62,15 +67,24 @@ class JwtTokenProvider implements TokenProvider {
 
 	@Override
 	public String createMfaToken(String userId, String jti, DeviceInfo d, long ttlSeconds) {
-		Date now = new Date();
+		return createChallenge("mfa", userId, jti, d, ttlSeconds);
+	}
+
+	@Override
+	public String createPasswordChangeToken(String userId, String jti, DeviceInfo d, long ttlSeconds) {
+		return createChallenge("pwc", userId, jti, d, ttlSeconds);
+	}
+
+	private String createChallenge(String typ, String userId, String jti, DeviceInfo d, long ttlSeconds) {
+		Instant now = clock.instant();
 		JwtBuilder b = Jwts.builder()
 				.subject(userId)
 				.id(jti)
-				.claim(TYP, "mfa")
+				.claim(TYP, typ)
 				.claim("did", d.deviceId())
 				.claim("plt", d.platform())
-				.issuedAt(now)
-				.expiration(new Date(now.getTime() + ttlSeconds * 1000));
+				.issuedAt(Date.from(now))
+				.expiration(Date.from(now.plusSeconds(ttlSeconds)));
 		// 기기 정보는 토큰에 실어 두어 서버에 별도 저장하지 않는다 (null 값은 제외)
 		putIfPresent(b, "osv", d.osVersion());
 		putIfPresent(b, "mdl", d.deviceModel());
@@ -80,7 +94,16 @@ class JwtTokenProvider implements TokenProvider {
 
 	@Override
 	public Optional<MfaClaims> parseMfaToken(String token) {
-		return parseTyped(token, "mfa").map(c -> {
+		return parseChallenge(token, "mfa");
+	}
+
+	@Override
+	public Optional<MfaClaims> parsePasswordChangeToken(String token) {
+		return parseChallenge(token, "pwc");
+	}
+
+	private Optional<MfaClaims> parseChallenge(String token, String typ) {
+		return parseTyped(token, typ).map(c -> {
 			String subject = c.getSubject();
 			String jti = c.getId();
 			String did = c.get("did", String.class);
@@ -97,9 +120,9 @@ class JwtTokenProvider implements TokenProvider {
 	/** 서명·만료 검증 후 typ 이 기대값일 때만 클레임을 돌려준다. */
 	private Optional<Claims> parseTyped(String token, String typ) {
 		try {
-			Claims claims = Jwts.parser().verifyWith(key).build().parseSignedClaims(token).getPayload();
+			Claims claims = Jwts.parser().verifyWith(key).clock(() -> Date.from(clock.instant())).build().parseSignedClaims(token).getPayload();
 			return typ.equals(claims.get(TYP, String.class)) ? Optional.of(claims) : Optional.empty();
-		} catch (JwtException | IllegalArgumentException e) {
+		} catch (JwtException | IllegalArgumentException _) {
 			return Optional.empty();
 		}
 	}

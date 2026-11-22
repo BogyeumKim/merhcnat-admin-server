@@ -1,5 +1,6 @@
 package com.app.demo.auth.domain;
 
+import com.app.demo.global.security.AuthUser;
 import com.app.demo.user.domain.DeviceInfo;
 import java.util.Optional;
 import org.jspecify.annotations.Nullable;
@@ -15,6 +16,12 @@ public interface TokenProvider {
 
 	/** MFA 챌린지 토큰 발급. jti 는 user_info.mfa_jti 에 저장돼 일회용/최신 1개만 유효를 보장한다. */
 	String createMfaToken(String userId, String jti, DeviceInfo device, long ttlSeconds);
+
+	/** 임시비밀번호 변경 전용 챌린지 토큰 발급 (access/mfa 로 쓸 수 없다). jti 는 user_info.mfa_jti 로 일회용 보장. */
+	String createPasswordChangeToken(String userId, String jti, DeviceInfo device, long ttlSeconds);
+
+	/** 임시비밀번호 변경 토큰 검증. 서명/만료가 틀리거나 해당 종류가 아니면 empty. */
+	Optional<MfaClaims> parsePasswordChangeToken(String token);
 
 	/** MFA 챌린지 토큰 검증. 서명/만료가 틀리거나 mfa 토큰이 아니면 empty. */
 	Optional<MfaClaims> parseMfaToken(String token);

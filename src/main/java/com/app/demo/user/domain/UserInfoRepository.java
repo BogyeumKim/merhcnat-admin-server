@@ -12,6 +12,12 @@ public interface UserInfoRepository {
 	/** 해당 기기가 이미 어떤 사용자에게 등록돼 있는지 */
 	boolean existsByDeviceId(String deviceId);
 
+	/** 해당 기기가 등록된 사용자 아이디. 없으면 null */
+	@Nullable String findUserIdByDeviceId(String deviceId);
+
+	/** 계정 잠금 시각 기록 (잠금 화면 표시용) */
+	void markLocked(String userId, LocalDateTime at);
+
 	// ── MFA 챌린지 (일회용, 최신 1개만 유효) ──
 	/** 새 챌린지 jti 저장 (이전 토큰은 자동 무효화) */
 	void issueMfa(String userId, String jti);
