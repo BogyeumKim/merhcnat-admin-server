@@ -1,6 +1,6 @@
 plugins {
 	id 'java'
-	id 'org.springframework.boot' version '4.0.0'          // 항상 Spring Boot 4+ 유지
+	id 'org.springframework.boot' version '4.1.3'          // 항상 Spring Boot 4+ 유지
 	id 'io.spring.dependency-management' version '1.1.7'
 	id 'net.ltgt.errorprone' version '5.2.0'                // NullAway 실행용 Error Prone 플러그인
 }
@@ -24,16 +24,16 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
 	implementation 'org.springframework.boot:spring-boot-starter-data-redis'   // 단일 로그인 세션(jti) 저장소
 	implementation 'com.baomidou:mybatis-plus-spring-boot4-starter:3.5.18.1'   // MyBatis-Plus (Spring Boot 4 전용 스타터)
-	implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
-	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
-	runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
+	implementation 'io.jsonwebtoken:jjwt-api:0.12.7'
+	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.7'
+	runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.7'
 	runtimeOnly 'com.mysql:mysql-connector-j'
 
 	// null 안전성: Spring Boot 4 / Spring Framework 7 표준인 JSpecify (@NullMarked, @Nullable)
 	implementation 'org.jspecify:jspecify:1.0.1'
 	// package-info.java(@NullMarked) 없이 컴파일 시점에 null 위반을 오류로 잡는다 (아래 NullAway 설정 참고)
-	errorprone 'com.google.errorprone:error_prone_core:2.52.0'
-	errorprone 'com.uber.nullaway:nullaway:0.14.3'
+	errorprone 'com.google.errorprone:error_prone_core:2.53.0'
+	errorprone 'com.uber.nullaway:nullaway:0.14.4'
 
 	compileOnly 'org.projectlombok:lombok'
 	annotationProcessor 'org.projectlombok:lombok'
