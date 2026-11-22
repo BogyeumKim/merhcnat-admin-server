@@ -106,7 +106,7 @@ public class LoginService {
 	 * 기기 안내 정보.
 	 * <ul>
 	 *   <li>MATCH  : 이 사용자에 등록된 기기와 같음(비밀키가 없거나 틀려 OTP 를 요구하는 경우 포함)</li>
-	 *   <li>CHANGED: 본인의 다른 기기가 등록돼 있음 → 본인 아이디(마스킹) / 이 기기가 다른 계정 소유 → 다른 계정 표시만(아이디 비공개)</li>
+	 *   <li>CHANGED: 본인의 다른 기기가 등록돼 있음 → 본인 아이디(마스킹) / 이 기기가 다른 계정 소유 → 다른 계정 표시 + 그 계정 아이디(마스킹)</li>
 	 *   <li>NONE   : 최초</li>
 	 * </ul>
 	 */
@@ -116,7 +116,7 @@ public class LoginService {
 		}
 		String owner = infos.findUserIdByDeviceId(device.deviceId());
 		if (owner != null && !owner.equals(userId)) {
-			return new DeviceNotice(DeviceState.CHANGED, null, Boolean.TRUE);
+			return new DeviceNotice(DeviceState.CHANGED, IdMasking.mask(owner), Boolean.TRUE);
 		}
 		if (info.deviceId() != null) {
 			return new DeviceNotice(DeviceState.CHANGED, IdMasking.mask(userId), null);

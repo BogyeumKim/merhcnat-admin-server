@@ -13,8 +13,8 @@ import org.jspecify.annotations.Nullable;
  * @param channels               사용 가능한 수단과 마스킹된 수신처. 연락처가 없으면 빈 배열
  * @param lastUsedChannel        마지막으로 인증에 성공한 수단. 없으면 응답에서 제외
  * @param challengeToken         이후 otp/send·otp/verify 에 쓰는 일회용 토큰
- * @param registeredUserIdMasked deviceState=CHANGED 이고 본인의 다른 기기가 등록돼 있을 때만: 본인 아이디(마스킹)
- * @param deviceRegisteredToOtherAccount 이 기기가 다른 계정에 등록돼 있으면 true (다른 계정 아이디는 내려주지 않는다). 그 외 제외
+ * @param registeredUserIdMasked deviceState=CHANGED 일 때 이 기기에 현재 등록된 아이디(마스킹, 본인 또는 다른 계정)
+ * @param deviceRegisteredToOtherAccount 이 기기가 다른 계정에 등록돼 있으면 true. 그 외 제외
  */
 public record MfaChallengeResponse(
 		String userId,

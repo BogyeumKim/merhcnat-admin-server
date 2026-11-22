@@ -57,3 +57,6 @@ otp:
   ttl-seconds: 180             # OTP 코드 유효시간
   resend-hint-seconds: 60     # 앱 "N초 후 다시 받기" 타이머 힌트(resendAfterSeconds). 서버는 이 값으로 막지 않는다
   max-sends-per-challenge: 5   # 로그인(챌린지) 1회당 최대 발송 횟수(수단 합산). 넘으면 처음부터 다시 로그인
+
+app-status:
+  maintenance-path-prefix: /api/   # 점검(503) 적용 경로. /api/ = 로그인 전후 전체, /api/auth/ 로 바꾸면 로그인 단계만

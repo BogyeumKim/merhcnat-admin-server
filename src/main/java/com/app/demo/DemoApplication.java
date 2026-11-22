@@ -12,6 +12,7 @@ import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
  * user/              사용자: 사용자·부가정보·등록 기기(푸시 토큰)
  * notice/            공지
  * home/              홈 요약
+ * appstatus/         앱 점검 모드·최소 버전 정책 (모든 /api 요청 입구 필터)
  *
  * 각 맥락 내부:
  *   api/             컨트롤러

@@ -37,6 +37,11 @@ public record ApiResponse<T>(String code, String message, @Nullable T data) {
 
 	/** 오류 응답. 오류 봉투는 반드시 이 메서드로 만든다. */
 	public static <T> ApiResponse<T> error(ErrorCode errorCode, @Nullable T data) {
-		return new ApiResponse<>(errorCode.getCode(), errorCode.getMessage(), data);
+		return error(errorCode, errorCode.getMessage(), data);
+	}
+
+	/** 오류 응답(운영자가 정한 안내 문구 등 상황별 문구를 쓸 때. 예: 점검 안내) */
+	public static <T> ApiResponse<T> error(ErrorCode errorCode, String message, @Nullable T data) {
+		return new ApiResponse<>(errorCode.getCode(), message, data);
 	}
 }

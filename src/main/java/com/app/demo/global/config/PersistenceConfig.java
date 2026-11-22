@@ -5,6 +5,7 @@ import org.springframework.context.annotation.Configuration;
 
 /** MyBatis-Plus 매퍼 스캔 설정. 매퍼는 각 컨텍스트의 infrastructure.persistence 에 둔다. */
 @Configuration
-@MapperScan({"com.app.demo.user.infrastructure.persistence", "com.app.demo.notice.infrastructure.persistence"})
+@MapperScan({"com.app.demo.user.infrastructure.persistence", "com.app.demo.notice.infrastructure.persistence",
+		"com.app.demo.appstatus.infrastructure.persistence"})
 public class PersistenceConfig {
 }

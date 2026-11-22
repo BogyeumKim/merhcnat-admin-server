@@ -57,7 +57,7 @@ tasks.withType(JavaCompile).configureEach {
 		// com.app.demo 이하 전체를 "@Nullable 이 없으면 non-null" 규칙으로 검사 (package-info 불필요)
 		option('NullAway:AnnotatedPackages', 'com.app.demo')
 		// MyBatis/Lombok 엔티티(persistence)는 필드가 null 로 채워질 수 있어 제외
-		option('NullAway:UnannotatedSubPackages', 'com.app.demo.user.infrastructure.persistence,com.app.demo.notice.infrastructure.persistence')
+		option('NullAway:UnannotatedSubPackages', 'com.app.demo.user.infrastructure.persistence,com.app.demo.notice.infrastructure.persistence,com.app.demo.appstatus.infrastructure.persistence')
 		// Lombok 이 만든 코드는 검사하지 않는다
 		option('NullAway:TreatGeneratedAsUnannotated', 'true')
 		// Spring 의존성 주입/테스트 코드는 검사 대상에서 제외
