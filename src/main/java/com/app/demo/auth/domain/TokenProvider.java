@@ -8,8 +8,12 @@ import org.jspecify.annotations.Nullable;
 /** 토큰 발급/검증 포트. access(로그인 완료 후)와 mfa(OTP 단계 전용)는 서로 대체될 수 없다. */
 public interface TokenProvider {
 
-	/** Access-Token 발급(토큰마다 새 jti). 토큰에는 deviceId 원문 대신 해시를 실어 "어느 기기의 토큰인지" 식별한다. */
-	AccessToken createAccessToken(String userId, @Nullable Integer userType, String deviceId);
+	/**
+	 * Access-Token 발급(토큰마다 새 jti). 토큰에는 deviceId 원문 대신 해시만 실어 "어느 기기의 토큰인지" 식별한다.
+	 *
+	 * @param deviceIdHash 기기 ID 의 SHA-256 hex (로그인 시 계산, 세션 교체 시 기존 토큰의 값을 그대로 사용)
+	 */
+	AccessToken createAccessToken(String userId, @Nullable Integer userType, String deviceIdHash);
 
 	/** Access-Token 검증. 서명/만료가 틀리거나 access 토큰이 아니거나 jti 가 없으면 empty. 세션 확인은 호출자가 한다. */
 	Optional<AuthUser> parseAccessToken(String token);

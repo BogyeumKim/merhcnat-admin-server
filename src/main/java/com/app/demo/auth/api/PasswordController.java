@@ -6,6 +6,7 @@ import com.app.demo.global.api.ApiResponse;
 import com.app.demo.global.security.AuthUser;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -20,10 +21,14 @@ public class PasswordController {
 
 	private final PasswordService passwordService;
 
-	/** 비밀번호 변경. 성공 시 200, 이후 로그인 응답의 passwordChangeRequired 는 false 가 된다. */
+	/**
+	 * 비밀번호 변경. 성공 시 200 + 새 Access-Token 헤더(세션 교체, 이전 토큰은 즉시 SESSION_REPLACED). 로그인은 유지된다.
+	 * 400 CURRENT_PASSWORD_INVALID / PASSWORD_POLICY_VIOLATION, 409 PASSWORD_REUSED, 423 ACCOUNT_LOCKED
+	 */
 	@PutMapping("/password")
-	public ApiResponse<Void> change(@AuthenticationPrincipal AuthUser user, @Valid @RequestBody PasswordChangeRequest request) {
-		passwordService.change(user, request.currentPassword(), request.newPassword());
-		return ApiResponse.ok();
+	public ResponseEntity<ApiResponse<Void>> change(@AuthenticationPrincipal AuthUser user,
+			@Valid @RequestBody PasswordChangeRequest request) {
+		return AccessTokenHeader.ok(passwordService.change(user, request.currentPassword(), request.newPassword()).value(),
+				ApiResponse.ok());
 	}
 }

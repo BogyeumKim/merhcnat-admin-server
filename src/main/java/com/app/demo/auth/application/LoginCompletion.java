@@ -53,8 +53,9 @@ class LoginCompletion {
 		users.resetFailCount(user.userId());
 		infos.markLogin(user.userId(), now);
 		infos.registerDevice(user.userId(), device, deviceSecretHash, now);
-		AccessToken token = tokens.createAccessToken(user.userId(), user.userType(), device.deviceId());
-		sessions.start(user.userId(), token, Sha256.hex(device.deviceId())); // 기존 세션(다른 기기 토큰) 교체
+		String deviceIdHash = Sha256.hex(device.deviceId());
+		AccessToken token = tokens.createAccessToken(user.userId(), user.userType(), deviceIdHash);
+		sessions.start(user.userId(), token, deviceIdHash); // 기존 세션(다른 기기 토큰) 교체
 		return token.value();
 	}
 

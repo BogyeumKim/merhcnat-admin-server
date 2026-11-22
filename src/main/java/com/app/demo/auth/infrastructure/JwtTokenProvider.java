@@ -5,7 +5,6 @@ import com.app.demo.auth.domain.AccessToken;
 import com.app.demo.auth.domain.MfaClaims;
 import com.app.demo.auth.domain.TokenProvider;
 import com.app.demo.global.security.AuthUser;
-import com.app.demo.global.security.Sha256;
 import com.app.demo.user.domain.DeviceInfo;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtBuilder;
@@ -58,7 +57,7 @@ class JwtTokenProvider implements TokenProvider {
 	}
 
 	@Override
-	public AccessToken createAccessToken(String userId, @Nullable Integer userType, String deviceId) {
+	public AccessToken createAccessToken(String userId, @Nullable Integer userType, String deviceIdHash) {
 		Instant now = clock.instant();
 		Instant expiresAt = now.plus(accessTokenTtl);
 		String jti = UUID.randomUUID().toString();
@@ -68,7 +67,7 @@ class JwtTokenProvider implements TokenProvider {
 				.id(jti)
 				.audience().add(ACCESS).and()
 				.claim(TYP, ACCESS)
-				.claim("dvh", Sha256.hex(deviceId))
+				.claim("dvh", deviceIdHash)
 				.issuedAt(Date.from(now))
 				.expiration(Date.from(expiresAt));
 		if (userType != null) {

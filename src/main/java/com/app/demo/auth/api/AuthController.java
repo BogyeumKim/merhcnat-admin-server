@@ -36,8 +36,6 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class AuthController {
 
-	private static final String ACCESS_TOKEN_HEADER = "Access-Token";
-
 	private final LoginService loginService;
 	private final OtpService otpService;
 	private final TempPasswordService tempPasswordService;
@@ -73,9 +71,8 @@ public class AuthController {
 	/** 단계 결과 → 200 응답. 로그인 완료일 때만 Access-Token 헤더를 붙인다. */
 	private static ResponseEntity<ApiResponse<AuthStepResponse>> toResponse(LoginStep step) {
 		return switch (step) {
-			case LoginStep.Completed(var session, var accessToken) -> ResponseEntity.ok()
-					.header(ACCESS_TOKEN_HEADER, accessToken)
-					.body(ApiResponse.ok(AuthSessionResponse.from(session)));
+			case LoginStep.Completed(var session, var accessToken) ->
+					AccessTokenHeader.ok(accessToken, ApiResponse.ok(AuthSessionResponse.from(session)));
 			case LoginStep.MfaRequired(var challenge) -> ResponseEntity.ok(nextStep(AuthStepCode.MFA_REQUIRED,
 					AuthStepCode.MFA_REQUIRED.getMessage(), MfaChallengeResponse.from(challenge)));
 			case LoginStep.PasswordChangeRequired(var challenge) -> ResponseEntity.ok(nextStep(AuthStepCode.PASSWORD_CHANGE_REQUIRED,
