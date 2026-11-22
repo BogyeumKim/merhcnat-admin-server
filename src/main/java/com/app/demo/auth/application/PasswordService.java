@@ -25,6 +25,7 @@ public class PasswordService {
 
 	private final UserRepository users;
 	private final AccountLockService accountLock;
+	private final SessionService sessions;
 	private final Clock clock;
 
 	/** 새 비밀번호 검증: 규칙 위반(400) / 재사용 금지(409). 실패 횟수에는 합산하지 않는다. */
@@ -39,16 +40,15 @@ public class PasswordService {
 		}
 	}
 
-	/** 로그인 사용자의 비밀번호 변경: 잠금 확인 → 현재 비밀번호 확인 → 새 비밀번호 규칙/재사용 검사 → 저장 */
+	/** 로그인 사용자의 비밀번호 변경: 잠금 확인 → 현재 비밀번호 확인 → 새 비밀번호 규칙/재사용 검사 → 저장 → 오류 횟수 초기화 → 로그인 세션 종료 */
 	public void change(AuthUser auth, String currentPassword, String newPassword) {
 		User user = users.findById(auth.userId())
 				.orElseThrow(() -> new BusinessException(CommonErrorCode.UNAUTHORIZED));
-		accountLock.checkLocked(user);
-		if (!user.passwordMatches(currentPassword)) {
-			throw accountLock.recordFailure(user.userId(),
-					remaining -> new BusinessException(AuthErrorCode.CURRENT_PASSWORD_INVALID, ErrorData.remaining(remaining)));
-		}
+		accountLock.verifySecret(user.userId(), () -> user.passwordMatches(currentPassword),
+				remaining -> new BusinessException(AuthErrorCode.CURRENT_PASSWORD_INVALID, ErrorData.remaining(remaining)));
 		checkNewPassword(user, newPassword);
 		users.changePassword(user.userId(), newPassword, LocalDateTime.now(clock));
+		users.resetFailCount(user.userId()); // 현재 비밀번호로 본인 확인이 끝났으므로 누적 오류 횟수를 초기화한다
+		sessions.end(user.userId());         // 모든 기기에서 다시 로그인하게 한다
 	}
 }

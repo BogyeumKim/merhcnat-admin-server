@@ -5,7 +5,7 @@ import org.jspecify.annotations.Nullable;
 
 /**
  * 모든 API 공통 응답 봉투.
- * HTTP 200 은 "요청이 실제로 성공"했을 때만 쓰고, 그 외는 4xx/5xx 와 같은 봉투로 내려간다.
+ * 요청(각 단계)이 성공하면 HTTP 200, 실패는 4xx/5xx 로 같은 봉투가 내려간다.
  *
  * @param code    앱이 분기하는 기계용 코드 (성공은 SUCCESS)
  * @param message 사람이 읽는 참고 문구
@@ -23,6 +23,11 @@ public record ApiResponse<T>(String code, String message, @Nullable T data) {
 	/** 성공 응답 (data 포함) */
 	public static <T> ApiResponse<T> ok(T data) {
 		return new ApiResponse<>(SUCCESS, "OK", data);
+	}
+
+	/** 성공 응답 (SUCCESS 외의 단계 code. 예: MFA_REQUIRED) */
+	public static <T> ApiResponse<T> of(String code, String message, T data) {
+		return new ApiResponse<>(code, message, data);
 	}
 
 	/** 오류 응답 (data 없음) */

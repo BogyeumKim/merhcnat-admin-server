@@ -1,3 +1,13 @@
+server:
+  forward-headers-strategy: framework   # 프록시 뒤에서 X-Forwarded-For 의 실제 클라이언트 IP 를 쓴다(감사 로그)
+  error:                                # 오류 응답에 내부 정보를 넣지 않는다(실제 응답은 EnvelopeErrorController 가 공통 봉투로 쓴다)
+    include-stacktrace: never
+    include-message: never
+    include-exception: false
+    include-binding-errors: never
+    whitelabel:
+      enabled: false
+
 spring:
   application:
     name: demo
@@ -11,28 +21,40 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
   jackson:
     default-property-inclusion: non_null   # null 필드는 응답에서 제외
+  data:
+    redis:                # 로그인 세션 저장소(auth:session:{userId}). 로컬은 비밀번호 없음
+      host: localhost
+      port: 6379
 
 mybatis-plus:
   configuration:
     map-underscore-to-camel-case: true                      # user_id <-> userId
-    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl   # SQL 콘솔 출력(개발용)
+    # SQL 로그는 SLF4J 로 보내고 매퍼 패키지는 INFO 로 막는다(결과 행에 비밀번호·연락처 원문이 찍히지 않게).
+    # 디버깅이 꼭 필요할 때만 로컬에서 아래 logging.level 을 잠시 DEBUG 로 낮추고, 로그는 공유하지 않는다.
+    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
   global-config:
     db-config:
       id-type: auto
 
+logging:
+  level:
+    com.app.demo.user.infrastructure.persistence: INFO
+    com.app.demo.notice.infrastructure.persistence: INFO
+
+# 비밀 값(jwt.secret, jwt.challenge-secret, otp.hash-secret, otp.dev-fixed-code)은 application-local.yaml(git 제외)에 둔다.
 jwt:
-  # 로컬 개발용 키 (HS256, 32바이트 이상). 운영에서는 환경변수/비밀관리로 교체
-  secret: local-dev-only-secret-key-change-me-0123456789
-  expiration-minutes: 60       # Access-Token 유효시간
+  expiration-minutes: 1440       # Access-Token 유효시간
 
 auth:
   password-expire-days: 90     # 마지막 비밀번호 변경 후 이 일수가 지나면 변경 필수(건너뛰기 불가)
+  session-idle-minutes: 15     # 마지막 요청 후 이 시간 동안 활동이 없으면 세션 만료(Access-Token 만료가 절대 상한)
   max-fail-count: 5            # user.password_fail_count 가 이 값에 도달하면 로그인 차단(관리자 해제). id/pw·OTP 오류 합산
 
 otp:
   length: 6                    # SMS/카카오 OTP 자릿수
-  challenge-ttl-seconds: 300   # login(1단계) 후 MFA 를 끝내야 하는 제한시간
+  challenge-ttl-seconds: 300   # login(1단계) 후 MFA 를 끝내야 하는 기본 제한시간(OTP 발송 때마다 OTP 만료 + 60초까지 연장)
+  challenge-max-seconds: 900   # MFA 챌린지 절대 상한(로그인 시점 기준 15분). 연장해도 넘지 않는다
   ttl-seconds: 180             # OTP 코드 유효시간
-  resend-seconds: 60           # OTP 재발송 최소 간격
-  hash-secret: local-dev-otp-pepper-change-me   # OTP HMAC 키 (운영에서는 교체)
-  dev-fixed-code: "000000"      # [개발용] loginType 0/1 모두 이 OTP 로 통과. 운영에서는 반드시 삭제(반드시 따옴표로 문자열 유지)
+  resend-seconds: 60           # 같은 수단 재발송 최소 간격(다른 수단으로 바꾸면 즉시 발송)
+  max-sends-per-challenge: 5   # 로그인(챌린지) 1회당 최대 발송 횟수
+  max-sends-per-hour: 10       # 사용자당 1시간 최대 발송 횟수

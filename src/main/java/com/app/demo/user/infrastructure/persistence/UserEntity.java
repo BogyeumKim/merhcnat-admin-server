@@ -20,6 +20,7 @@ public class UserEntity {
 	private Integer userType;
 	private Integer passwordFailCount;
 	private String phoneNumber;
+	private String email;
 	private String totpSecret;
 	private LocalDateTime lastChangePw;
 	private String oldPassword1;

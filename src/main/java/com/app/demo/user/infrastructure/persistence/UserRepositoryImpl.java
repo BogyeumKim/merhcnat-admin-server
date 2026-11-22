@@ -26,15 +26,27 @@ class UserRepositoryImpl implements UserRepository {
 		}
 		int failCount = e.getPasswordFailCount() == null ? 0 : e.getPasswordFailCount();
 		return Optional.of(new User(e.getUserId(), e.getPassword(), e.getLoginType(), e.getUserType(),
-				failCount, e.getPhoneNumber(), e.getTotpSecret(), e.getLastChangePw(), oldPasswords(e),
+				failCount, e.getPhoneNumber(), e.getEmail(), e.getTotpSecret(), e.getLastChangePw(), oldPasswords(e),
 				UseType.fromCode(e.getUseType()), e.getTmpPassword() != null && e.getTmpPassword() == 1));
 	}
 
 	@Override
-	public int increaseFailCount(String userId) {
-		// 컬럼이 NULL 허용이라 COALESCE. 증가는 DB 에서 원자적이지만, 다시 읽는 값은 동시 요청과 겹칠 수 있다
+	public boolean reserveAttempt(String userId, int max) {
+		// 컬럼이 NULL 허용이라 COALESCE. 조건과 증가가 UPDATE 한 문장이라 원자적이다.
+		return mapper.update(null, new UpdateWrapper<UserEntity>().eq("user_id", userId)
+				.apply("COALESCE(password_fail_count, 0) < {0}", max)
+				.setSql("password_fail_count = COALESCE(password_fail_count, 0) + 1")) == 1;
+	}
+
+	@Override
+	public void refundAttempt(String userId) {
 		mapper.update(null, new UpdateWrapper<UserEntity>().eq("user_id", userId)
-				.setSql("password_fail_count = COALESCE(password_fail_count, 0) + 1"));
+				.gt("password_fail_count", 0)
+				.setSql("password_fail_count = password_fail_count - 1"));
+	}
+
+	@Override
+	public int failCount(String userId) {
 		UserEntity e = mapper.selectById(userId);
 		return e == null || e.getPasswordFailCount() == null ? 0 : e.getPasswordFailCount();
 	}

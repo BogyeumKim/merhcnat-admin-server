@@ -4,6 +4,7 @@ import com.app.demo.global.api.ApiResponse;
 import com.app.demo.global.security.AuthUser;
 import com.app.demo.user.api.dto.DeviceUpdateRequest;
 import com.app.demo.user.application.DeviceService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -21,8 +22,8 @@ public class DeviceController {
 
 	/** 로그인 완료 후 현재 기기의 푸시 토큰을 갱신한다. 성공 시 200 */
 	@PutMapping("/me")
-	public ApiResponse<Void> update(@AuthenticationPrincipal AuthUser user, @RequestBody DeviceUpdateRequest request) {
-		deviceService.updatePush(user, request.expoPushToken());
+	public ApiResponse<Void> update(@AuthenticationPrincipal AuthUser user, @Valid @RequestBody DeviceUpdateRequest request) {
+		deviceService.updatePush(user, request.deviceSecret(), request.expoPushToken());
 		return ApiResponse.ok();
 	}
 }

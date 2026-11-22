@@ -2,6 +2,8 @@ package com.app.demo.user.application;
 
 import com.app.demo.global.exception.BusinessException;
 import com.app.demo.global.security.AuthUser;
+import com.app.demo.global.security.Sha256;
+import com.app.demo.user.domain.UserInfo;
 import com.app.demo.user.domain.UserInfoRepository;
 import com.app.demo.user.exception.UserErrorCode;
 import java.time.Clock;
@@ -20,12 +22,13 @@ public class DeviceService {
 	private final UserInfoRepository infos;
 	private final Clock clock;
 
-	/** 토큰의 deviceId 와 일치하는 "현재 등록 기기"의 값만 갱신한다. 보낸 필드만 반영. */
-	public void updatePush(AuthUser user, @Nullable String expoPushToken) {
-		String deviceId = user.deviceId();
-		if (deviceId == null) {
-			throw new BusinessException(UserErrorCode.DEVICE_NOT_IN_TOKEN);
-		}
+	/**
+	 * 현재 등록 기기의 푸시 토큰을 갱신한다. 보낸 필드만 반영.
+	 * Access-Token 이 이 등록 기기에서 발급된 것이고(기기 ID 해시 일치), 기기 비밀키도 맞아야 한다.
+	 * 기기 ID 는 비밀이 아니므로 ID 만으로는 다른 사람의 푸시 토큰을 덮어쓸 수 없게 한다.
+	 */
+	public void updatePush(AuthUser user, String deviceSecret, @Nullable String expoPushToken) {
+		String registeredDeviceId = requireVerifiedDevice(user, deviceSecret);
 		if (expoPushToken == null || expoPushToken.isBlank()) {
 			return; // 갱신할 값 없음
 		}
@@ -33,9 +36,25 @@ public class DeviceService {
 		if (!isExpoPushToken(token)) {
 			throw new BusinessException(UserErrorCode.PUSH_TOKEN_INVALID);
 		}
-		if (!infos.updatePush(user.userId(), deviceId, token, LocalDateTime.now(clock))) {
+		if (!infos.updatePush(user.userId(), registeredDeviceId, token, LocalDateTime.now(clock))) {
 			throw new BusinessException(UserErrorCode.DEVICE_NOT_FOUND);
 		}
+	}
+
+	/** 토큰의 기기가 지금 등록된 기기인지(404), 기기 비밀키가 맞는지(403) 확인하고 등록 기기 ID 를 돌려준다. */
+	private String requireVerifiedDevice(AuthUser user, String deviceSecret) {
+		if (user.deviceIdHash() == null) {
+			throw new BusinessException(UserErrorCode.DEVICE_NOT_IN_TOKEN);
+		}
+		UserInfo info = infos.findOrCreate(user.userId());
+		String registeredDeviceId = info.deviceId();
+		if (registeredDeviceId == null || !Sha256.hex(registeredDeviceId).equals(user.deviceIdHash())) {
+			throw new BusinessException(UserErrorCode.DEVICE_NOT_FOUND);
+		}
+		if (!info.isTrustedDevice(registeredDeviceId, deviceSecret)) {
+			throw new BusinessException(UserErrorCode.DEVICE_NOT_VERIFIED);
+		}
+		return registeredDeviceId;
 	}
 
 	/** Expo 푸시 토큰 형식인지 (임의 문자열 저장 방지) */

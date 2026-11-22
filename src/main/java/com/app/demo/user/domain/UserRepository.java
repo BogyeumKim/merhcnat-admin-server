@@ -8,8 +8,19 @@ public interface UserRepository {
 
 	Optional<User> findById(String userId);
 
-	/** 오류 횟수를 DB 에서 원자적으로 +1 하고 증가 후 값을 반환한다. */
-	int increaseFailCount(String userId);
+	/**
+	 * 비밀 값(비밀번호·OTP) 비교 1회를 원자적으로 예약한다: 오류 횟수가 max 미만일 때만 +1 한다.
+	 * 동시 요청이 몰려도 예약에 성공한 요청만 비교하므로 비교 횟수는 max 를 넘지 않는다.
+	 *
+	 * @return 예약에 성공하면 true, 이미 한도에 도달했으면 false
+	 */
+	boolean reserveAttempt(String userId, int max);
+
+	/** 비교에 성공한 시도의 예약을 되돌린다(0 미만으로 내려가지 않음). */
+	void refundAttempt(String userId);
+
+	/** 현재 오류 횟수 (계정이 없으면 0) */
+	int failCount(String userId);
 
 	/** 최종 로그인 성공 시 오류 횟수 초기화 */
 	void resetFailCount(String userId);

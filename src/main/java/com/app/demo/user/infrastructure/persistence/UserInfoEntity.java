@@ -27,6 +27,7 @@ public class UserInfoEntity {
 
 	// 등록 기기
 	private String deviceId;
+	private String deviceSecretHash;
 	private String devicePlatform;
 	private String osVersion;
 	private String deviceModel;
@@ -39,8 +40,13 @@ public class UserInfoEntity {
 	private LocalDateTime lockedAt;
 	private Long lastTotpStep;
 	private String mfaJti;
+	private LocalDateTime mfaExpiresAt;
 	private String otpCodeHash;
 	private String otpChannel;
 	private LocalDateTime otpExpiresAt;
 	private LocalDateTime otpSentAt;
+	private String lastOtpChannel;
+	private Integer otpSendCount;
+	private LocalDateTime otpWindowStartedAt;
+	private Integer otpWindowCount;
 }
