@@ -3,6 +3,7 @@ package com.app.demo.auth.api;
 import com.app.demo.auth.api.dto.PasswordChangeRequest;
 import com.app.demo.auth.api.dto.PasswordChangedResponse;
 import com.app.demo.auth.application.PasswordService;
+import com.app.demo.auth.domain.AccessToken;
 import com.app.demo.global.api.ApiResponse;
 import com.app.demo.global.security.AuthUser;
 import jakarta.validation.Valid;
@@ -28,7 +29,10 @@ public class PasswordController {
 	@PutMapping("/password")
 	public ApiResponse<PasswordChangedResponse> change(@AuthenticationPrincipal AuthUser user,
 			@Valid @RequestBody PasswordChangeRequest request) {
-		return ApiResponse.ok(new PasswordChangedResponse(
-				passwordService.change(user, request.currentPassword(), request.newPassword()).value()));
+		AccessToken token = passwordService.change(user, request.getCurrentPassword(), request.getNewPassword());
+		PasswordChangedResponse data = PasswordChangedResponse.with()
+				.accessToken(token.getValue())
+				.create();
+		return ApiResponse.ok(data);
 	}
 }

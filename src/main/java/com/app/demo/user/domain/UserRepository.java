@@ -25,6 +25,6 @@ public interface UserRepository {
 	/** 최종 로그인 성공 시 오류 횟수 초기화 */
 	void resetFailCount(String userId);
 
-	/** 비밀번호 변경: old_password1~3 을 한 칸씩 밀고 현재 값을 old_password1 에 넣은 뒤 새 값/변경 시각을 저장한다 (UPDATE 한 문장). */
+	/** 비밀번호 변경: old_password1~3 을 한 칸씩 밀고 현재 값을 old_password1 에 넣은 뒤 새 값({@link PasswordHash})/변경 시각을 저장한다 (UPDATE 한 문장). */
 	void changePassword(String userId, String newPassword, LocalDateTime now);
 }

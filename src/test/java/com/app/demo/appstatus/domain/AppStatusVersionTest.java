@@ -13,12 +13,12 @@ class AppStatusVersionTest {
 	private static final LocalDateTime RELEASE = LocalDateTime.of(2026, 12, 1, 10, 0);
 
 	private static VersionRelease release(AppPlatform platform, String version, LocalDateTime at) {
-		return new VersionRelease(platform, AppVersion.parse(version).orElseThrow(), at);
+		return VersionRelease.with().platform(platform).version(AppVersion.parse(version).orElseThrow()).forceAt(at).create();
 	}
 
 	/** 저장소가 주는 순서(force_dt, id 오름차순) 그대로 넣는다 */
 	private static AppStatus status(VersionRelease... releases) {
-		return new AppStatus(List.of(), List.of(releases));
+		return AppStatus.of(List.of(), List.of(releases));
 	}
 
 	private static final VersionRelease IOS_1_0 = release(AppPlatform.IOS, "1.0.0", RELEASE.minusMonths(1));

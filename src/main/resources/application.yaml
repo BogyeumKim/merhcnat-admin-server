@@ -38,6 +38,7 @@ mybatis-plus:
 
 logging:
   level:
+    org.zalando.logbook: TRACE   # 요청·응답 한 쌍을 남긴다(Logbook 은 TRACE 로 쓴다)
     com.app.demo.user.infrastructure.persistence: INFO
     com.app.demo.notice.infrastructure.persistence: INFO
 
@@ -60,3 +61,23 @@ otp:
 
 app-status:
   maintenance-path-prefix: /api/   # 점검(503) 적용 경로. /api/ = 로그인 전후 전체, /api/auth/ 로 바꾸면 로그인 단계만
+
+# 요청·응답 로그. 비밀번호·OTP·토큰·기기 비밀키는 값을 가려 남긴다(키 이름은 남긴다).
+logbook:
+  format:
+    style: json
+  obfuscate:
+    replacement: "****"
+    headers:
+      - Authorization
+      - Cookie
+      - Set-Cookie
+    json-body-fields:
+      - password
+      - currentPassword
+      - newPassword
+      - otp
+      - deviceSecret
+      - accessToken
+      - challengeToken
+      - expoPushToken

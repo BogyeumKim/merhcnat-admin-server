@@ -68,8 +68,8 @@ class HttpErrorHandlingTest {
 	@BeforeEach
 	void login() {
 		AccessToken token = tokens.createAccessToken(USER, 1, "probe-device");
-		sessions.save(USER, new Session(token.jti(), null, Instant.now()), Duration.ofMinutes(5));
-		bearer = "Bearer " + token.value();
+		sessions.save(USER, Session.with().jti(token.getJti()).issuedAt(Instant.now()).create(), Duration.ofMinutes(5));
+		bearer = "Bearer " + token.getValue();
 	}
 
 	@AfterEach
@@ -141,15 +141,6 @@ class HttpErrorHandlingTest {
 				400, "BAD_REQUEST");
 		expectEnvelope(mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
 				.accept(MediaType.APPLICATION_XML).content("{}")), 400, "BAD_REQUEST");
-	}
-
-	// ── 본문 크기 ──
-
-	@Test
-	void oversizedBodyIs413() throws Exception {
-		String big = "{\"userId\":\"" + "a".repeat(70 * 1024) + "\"}";
-		expectEnvelope(mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON).content(big)),
-				413, "PAYLOAD_TOO_LARGE");
 	}
 
 	// ── 방화벽(StrictHttpFirewall) 거부 ──

@@ -105,18 +105,18 @@ class UserInfoRepositoryImpl implements UserInfoRepository {
 	@Override
 	public void registerDevice(String userId, DeviceInfo d, @Nullable String deviceSecretHash, LocalDateTime now) {
 		UserInfo current = findOrCreate(userId);
-		boolean same = current.hasDevice(d.deviceId());
+		boolean same = current.hasDevice(d.getDeviceId());
 		if (!same) {
 			// ① 이 기기를 쓰던 다른 사용자의 기기 정보 비우기 (이전 계정으로 오발송 방지)
-			mapper.update(null, new UpdateWrapper<UserInfoEntity>().eq("device_id", d.deviceId()).ne("user_id", userId)
+			mapper.update(null, new UpdateWrapper<UserInfoEntity>().eq("device_id", d.getDeviceId()).ne("user_id", userId)
 					.set("device_id", null).set("device_platform", null)
 					.set("os_version", null).set("device_model", null).set("app_version", null)
 					.set("expo_push_token", null).set("expo_push_token_updated_at", null).set("device_secret_hash", null));
 		}
 		// ② 이 사용자의 기기를 새 기기로 덮어쓰기
 		UpdateWrapper<UserInfoEntity> w = new UpdateWrapper<UserInfoEntity>().eq("user_id", userId)
-				.set("device_id", d.deviceId()).set("device_platform", d.platform())
-				.set("os_version", d.osVersion()).set("device_model", d.deviceModel()).set("app_version", d.appVersion());
+				.set("device_id", d.getDeviceId()).set("device_platform", d.getPlatform())
+				.set("os_version", d.getOsVersion()).set("device_model", d.getDeviceModel()).set("app_version", d.getAppVersion());
 		if (!same) {
 			w.set("expo_push_token", null).set("expo_push_token_updated_at", null);
 		}
@@ -140,9 +140,21 @@ class UserInfoRepositoryImpl implements UserInfoRepository {
 
 	/** 엔티티 → 도메인 (인증 판단에 필요한 값만) */
 	private static UserInfo toDomain(UserInfoEntity e) {
-		return new UserInfo(e.getUserId(), e.getDeviceId(), e.getDeviceSecretHash(), e.getLastTotpStep(), e.getMfaJti(), e.getMfaExpiresAt(),
-				e.getOtpCodeHash(), e.getOtpChannel(), e.getOtpExpiresAt(), e.getLockedAt(), e.getLastOtpChannel(),
-				zeroIfNull(e.getOtpSendCount()));
+		int otpSendCount = zeroIfNull(e.getOtpSendCount());
+		return UserInfo.with()
+				.userId(e.getUserId())
+				.deviceId(e.getDeviceId())
+				.deviceSecretHash(e.getDeviceSecretHash())
+				.lastTotpStep(e.getLastTotpStep())
+				.mfaJti(e.getMfaJti())
+				.mfaExpiresAt(e.getMfaExpiresAt())
+				.otpCodeHash(e.getOtpCodeHash())
+				.otpChannel(e.getOtpChannel())
+				.otpExpiresAt(e.getOtpExpiresAt())
+				.lockedAt(e.getLockedAt())
+				.lastOtpChannel(e.getLastOtpChannel())
+				.otpSendCount(otpSendCount)
+				.create();
 	}
 
 	private static int zeroIfNull(@Nullable Integer value) {

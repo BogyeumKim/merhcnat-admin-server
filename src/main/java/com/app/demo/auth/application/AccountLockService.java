@@ -2,9 +2,11 @@ package com.app.demo.auth.application;
 
 import com.app.demo.auth.config.AuthProperties;
 import com.app.demo.auth.domain.IdMasking;
+import com.app.demo.auth.domain.policy.AccountPolicy;
 import com.app.demo.auth.exception.AuthErrorCode;
 import com.app.demo.global.api.ErrorData;
 import com.app.demo.global.exception.BusinessException;
+import com.app.demo.global.exception.ErrorCode;
 import com.app.demo.user.domain.User;
 import com.app.demo.user.domain.UserInfoRepository;
 import com.app.demo.user.domain.UserRepository;
@@ -42,7 +44,7 @@ public class AccountLockService {
 	 * 401 INVALID_CREDENTIALS(data 없음)를 던지고, 잠금(423)은 비밀번호가 맞았을 때만 알려 준다.
 	 */
 	public void verifyLoginPassword(User user, String password) {
-		String userId = user.userId();
+		String userId = user.getUserId();
 		if (!users.reserveAttempt(userId, maxFailCount())) {
 			// 이미 잠긴 계정: 횟수는 더 세지 않고, 비밀번호가 맞을 때만 잠금 사실을 알려 준다
 			throw user.passwordMatches(password) ? alreadyLocked(userId) : invalidCredentials();
@@ -85,17 +87,15 @@ public class AccountLockService {
 	/** 이미 잠긴 계정이면 423 (챌린지 단계 진입 시 확인. 비밀번호를 이미 확인한 뒤라 잠금 사실을 알려도 된다) */
 	public void checkLocked(User user) {
 		if (user.isLocked(maxFailCount())) {
-			throw alreadyLocked(user.userId());
+			throw alreadyLocked(user.getUserId());
 		}
 	}
 
 	/** 정지(403 ACCOUNT_SUSPENDED)/삭제(없는 계정과 같은 401) 이용자 차단. 실패 횟수에는 합산하지 않는다. */
 	public void checkUsable(User user) {
-		if (user.isDeleted()) {
-			throw invalidCredentials();
-		}
-		if (user.isSuspended()) {
-			throw new BusinessException(AuthErrorCode.ACCOUNT_SUSPENDED);
+		Optional<ErrorCode> rejection = AccountPolicy.checkUsable(user);
+		if (rejection.isPresent()) {
+			throw new BusinessException(rejection.orElseThrow());
 		}
 	}
 
@@ -105,7 +105,7 @@ public class AccountLockService {
 	}
 
 	private int maxFailCount() {
-		return authProps.maxFailCount();
+		return authProps.getMaxFailCount();
 	}
 
 	private int remainingAttempts(String userId) {
@@ -120,7 +120,7 @@ public class AccountLockService {
 	}
 
 	private BusinessException alreadyLocked(String userId) {
-		return lockedError(userId, infos.findOrCreate(userId).lockedAt());
+		return lockedError(userId, infos.findOrCreate(userId).getLockedAt());
 	}
 
 	/** data 에 마스킹된 아이디와 잠긴 시각(ISO-8601 + 오프셋, 기록이 없으면 null)을 담는다. */

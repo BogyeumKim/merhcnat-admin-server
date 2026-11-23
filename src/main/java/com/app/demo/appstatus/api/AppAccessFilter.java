@@ -53,12 +53,16 @@ public class AppAccessFilter extends OncePerRequestFilter {
 	@Override
 	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
 			throws ServletException, IOException {
-		boolean maintenanceApplies = request.getRequestURI().startsWith(properties.maintenancePathPrefix());
-		switch (access.decide(maintenanceApplies, request.getHeader(PLATFORM_HEADER), request.getHeader(VERSION_HEADER))) {
-			case AccessDecision.Allowed() -> chain.doFilter(request, response);
-			case AccessDecision.UnderMaintenance(var window) -> writeMaintenance(response, window);
-			case AccessDecision.UpdateRequired(var required) -> writeUpdateRequired(response, required);
-			case AccessDecision.InvalidClientHeaders() -> {
+		String uri = request.getRequestURI();
+		boolean maintenanceApplies = uri.startsWith(properties.getMaintenancePathPrefix());
+		String platformHeader = request.getHeader(PLATFORM_HEADER);
+		String versionHeader = request.getHeader(VERSION_HEADER);
+		AccessDecision decision = access.decide(maintenanceApplies, platformHeader, versionHeader);
+		switch (decision) {
+			case AccessDecision.Allowed _ -> chain.doFilter(request, response);
+			case AccessDecision.UnderMaintenance maintenance -> writeMaintenance(response, maintenance.getWindow());
+			case AccessDecision.UpdateRequired update -> writeUpdateRequired(response, update.getRequired());
+			case AccessDecision.InvalidClientHeaders _ -> {
 				log.warn("[{}] {} - invalid app version headers", CommonErrorCode.INVALID_INPUT.getCode(), LogSafe.target(request));
 				writer.write(response, CommonErrorCode.INVALID_INPUT);
 			}
@@ -66,13 +70,18 @@ public class AppAccessFilter extends OncePerRequestFilter {
 	}
 
 	private void writeMaintenance(HttpServletResponse response, MaintenanceWindow window) throws IOException {
-		writer.write(response, AppStatusErrorCode.MAINTENANCE, AppStatusErrorCode.MAINTENANCE.getMessage(),
-				new MaintenanceData(isoWithOffset(window.from()), isoWithOffset(window.to())));
+		MaintenanceData data = MaintenanceData.with()
+				.startedAt(isoWithOffset(window.getFrom()))
+				.endsAt(isoWithOffset(window.getTo()))
+				.create();
+		writer.write(response, AppStatusErrorCode.MAINTENANCE, AppStatusErrorCode.MAINTENANCE.getMessage(), data);
 	}
 
 	private void writeUpdateRequired(HttpServletResponse response, VersionRelease required) throws IOException {
-		writer.write(response, AppStatusErrorCode.UPDATE_REQUIRED, AppStatusErrorCode.UPDATE_REQUIRED.getMessage(),
-				new UpdateRequiredData(required.version().toString()));
+		UpdateRequiredData data = UpdateRequiredData.with()
+				.minAppVersion(required.getVersion().asText())
+				.create();
+		writer.write(response, AppStatusErrorCode.UPDATE_REQUIRED, AppStatusErrorCode.UPDATE_REQUIRED.getMessage(), data);
 	}
 
 	private String isoWithOffset(LocalDateTime time) {

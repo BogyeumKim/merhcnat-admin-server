@@ -37,7 +37,7 @@ class AppVersionTest {
 	@ValueSource(strings = {"1.2.3-beta.1", "1.2.3+45", " 1.2.3 "})
 	@DisplayName("pre-release/build 표기와 앞뒤 공백은 무시하고 1.2.3 으로 본다")
 	void ignoresSuffix(String value) {
-		assertThat(AppVersion.parse(value)).contains(new AppVersion(1, 2, 3));
+		assertThat(AppVersion.parse(value)).contains(AppVersion.with().major(1).minor(2).patch(3).create());
 	}
 
 	@ParameterizedTest

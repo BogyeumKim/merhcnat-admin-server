@@ -23,7 +23,7 @@ public class DeviceController {
 	/** 로그인 완료 후 현재 기기의 푸시 토큰을 갱신한다. 성공 시 200 */
 	@PutMapping("/me")
 	public ApiResponse<Void> update(@AuthenticationPrincipal AuthUser user, @Valid @RequestBody DeviceUpdateRequest request) {
-		deviceService.updatePush(user, request.deviceSecret(), request.expoPushToken());
+		deviceService.updatePush(user, request.getDeviceSecret(), request.getExpoPushToken());
 		return ApiResponse.ok();
 	}
 }

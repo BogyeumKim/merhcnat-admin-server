@@ -43,10 +43,23 @@ class NoticeRepositoryImpl implements NoticeRepository {
 	private Notice toDomain(NoticeEntity e) {
 		NoticeImage image = null;
 		if (e.getImageUrl() != null && e.getImageWidth() != null && e.getImageHeight() != null) {
-			image = new NoticeImage(e.getImageUrl(), e.getImageWidth(), e.getImageHeight(), e.getImageAlt());
+			image = NoticeImage.with()
+					.url(e.getImageUrl())
+					.width(e.getImageWidth())
+					.height(e.getImageHeight())
+					.alt(e.getImageAlt())
+					.create();
 		}
 		LocalDate createdOn = e.getCreatedAt() == null ? LocalDate.now(clock) : e.getCreatedAt().toLocalDate();
-		return new Notice(String.valueOf(e.getId()), Objects.requireNonNullElse(e.getTitle(), ""),
-				Objects.requireNonNullElse(e.getBody(), ""), image, createdOn);
+		String id = String.valueOf(e.getId());
+		String title = Objects.requireNonNullElse(e.getTitle(), "");
+		String body = Objects.requireNonNullElse(e.getBody(), "");
+		return Notice.with()
+				.id(id)
+				.title(title)
+				.body(body)
+				.image(image)
+				.createdOn(createdOn)
+				.create();
 	}
 }

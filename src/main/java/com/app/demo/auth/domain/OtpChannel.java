@@ -29,8 +29,8 @@ public enum OtpChannel {
 	public Optional<String> contactOf(User user) {
 		return switch (this) {
 			case TOTP -> Optional.empty();
-			case KAKAO, SMS -> user.hasPhone() ? Optional.ofNullable(user.phoneNumber()) : Optional.empty();
-			case EMAIL -> user.hasEmail() ? Optional.ofNullable(user.email()) : Optional.empty();
+			case KAKAO, SMS -> user.hasPhone() ? Optional.ofNullable(user.getPhoneNumber()) : Optional.empty();
+			case EMAIL -> user.hasEmail() ? Optional.ofNullable(user.getEmail()) : Optional.empty();
 		};
 	}
 

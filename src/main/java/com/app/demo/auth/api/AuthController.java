@@ -11,7 +11,9 @@ import com.app.demo.auth.api.dto.PasswordChangeRequiredResponse;
 import com.app.demo.auth.api.dto.TempPasswordChangeRequest;
 import com.app.demo.auth.application.LoginService;
 import com.app.demo.auth.application.LoginStep;
+import com.app.demo.auth.application.MfaChallenge;
 import com.app.demo.auth.application.OtpService;
+import com.app.demo.auth.application.PasswordChangeChallenge;
 import com.app.demo.auth.application.TempPasswordService;
 import com.app.demo.global.api.ApiResponse;
 import com.app.demo.global.security.AuthAuditContext;
@@ -70,12 +72,26 @@ public class AuthController {
 	/** 단계 결과 → 200 응답 본문. 로그인 완료면 data 에 accessToken 이 담긴다. */
 	private static ApiResponse<AuthStepResponse> toResponse(LoginStep step) {
 		return switch (step) {
-			case LoginStep.Completed(var session, var accessToken) -> ApiResponse.ok(AuthSessionResponse.from(session, accessToken));
-			case LoginStep.MfaRequired(var challenge) -> nextStep(AuthStepCode.MFA_REQUIRED,
-					AuthStepCode.MFA_REQUIRED.getMessage(), MfaChallengeResponse.from(challenge));
-			case LoginStep.PasswordChangeRequired(var challenge) -> nextStep(AuthStepCode.PASSWORD_CHANGE_REQUIRED,
-					AuthStepCode.passwordChangeMessage(challenge.reason()), PasswordChangeRequiredResponse.from(challenge));
+			case LoginStep.Completed completed -> completed(completed);
+			case LoginStep.MfaRequired mfa -> mfaRequired(mfa.getChallenge());
+			case LoginStep.PasswordChangeRequired change -> passwordChangeRequired(change.getChallenge());
 		};
+	}
+
+	private static ApiResponse<AuthStepResponse> completed(LoginStep.Completed completed) {
+		AuthSessionResponse data = AuthSessionResponse.from(completed.getSession(), completed.getAccessToken());
+		return ApiResponse.ok(data);
+	}
+
+	private static ApiResponse<AuthStepResponse> mfaRequired(MfaChallenge challenge) {
+		MfaChallengeResponse data = MfaChallengeResponse.from(challenge);
+		return nextStep(AuthStepCode.MFA_REQUIRED, AuthStepCode.MFA_REQUIRED.getMessage(), data);
+	}
+
+	private static ApiResponse<AuthStepResponse> passwordChangeRequired(PasswordChangeChallenge challenge) {
+		String message = AuthStepCode.passwordChangeMessage(challenge.getReason());
+		PasswordChangeRequiredResponse data = PasswordChangeRequiredResponse.from(challenge);
+		return nextStep(AuthStepCode.PASSWORD_CHANGE_REQUIRED, message, data);
 	}
 
 	private static ApiResponse<AuthStepResponse> nextStep(AuthStepCode code, String message, AuthStepResponse data) {

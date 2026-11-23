@@ -35,7 +35,7 @@ public class PasswordService {
 
 	/** 새 비밀번호 검증: 규칙 위반(400) / 재사용 금지(409). 실패 횟수에는 합산하지 않는다. */
 	public void checkNewPassword(User user, String newPassword) {
-		List<String> violations = PasswordPolicy.violations(user.userId(), newPassword);
+		List<String> violations = PasswordPolicy.violations(user.getUserId(), newPassword);
 		if (!violations.isEmpty()) {
 			throw new BusinessException(AuthErrorCode.PASSWORD_POLICY_VIOLATION, ErrorData.violations(violations));
 		}
@@ -51,27 +51,32 @@ public class PasswordService {
 	 * @return 교체된 세션의 새 Access-Token (응답 본문 data.accessToken 으로 내려간다)
 	 */
 	public AccessToken change(AuthUser auth, String currentPassword, String newPassword) {
+		// ── [1단계] 본인: 기기 바인딩 → 사용자 → 현재 비밀번호(오류 합산) ──
 		String deviceIdHash = requireDeviceBinding(auth);
-		User user = users.findById(auth.userId())
+		User user = users.findById(auth.getUserId())
 				.orElseThrow(() -> new BusinessException(CommonErrorCode.UNAUTHORIZED));
-		accountLock.verifySecret(user.userId(), () -> user.passwordMatches(currentPassword),
+		accountLock.verifySecret(user.getUserId(), () -> user.passwordMatches(currentPassword),
 				remaining -> new BusinessException(AuthErrorCode.CURRENT_PASSWORD_INVALID, ErrorData.remaining(remaining)));
+
+		// ── [2단계] 새 비밀번호: 규칙 → 재사용 ──
 		checkNewPassword(user, newPassword);
-		users.changePassword(user.userId(), newPassword, LocalDateTime.now(clock));
-		users.resetFailCount(user.userId()); // 현재 비밀번호로 본인 확인이 끝났으므로 누적 오류 횟수를 초기화한다
+
+		// ── [3단계] 변경: 저장 → 오류 횟수 초기화 → 세션 교체 ──
+		users.changePassword(user.getUserId(), newPassword, LocalDateTime.now(clock));
+		users.resetFailCount(user.getUserId()); // 현재 비밀번호로 본인 확인이 끝났으므로 누적 오류 횟수를 초기화한다
 		return reissueSession(user, deviceIdHash);
 	}
 
 	/** 같은 기기로 새 토큰을 발급하고 세션을 교체한다. 이전 토큰(혹시 남은 다른 토큰 포함)은 즉시 무효가 된다. */
 	private AccessToken reissueSession(User user, String deviceIdHash) {
-		AccessToken token = tokens.createAccessToken(user.userId(), user.userType(), deviceIdHash);
-		sessions.start(user.userId(), token, deviceIdHash);
+		AccessToken token = tokens.createAccessToken(user.getUserId(), user.getUserType(), deviceIdHash);
+		sessions.start(user.getUserId(), token, deviceIdHash);
 		return token;
 	}
 
 	/** 새 토큰도 같은 기기에 묶어야 하므로 기기 해시가 없는 토큰은 거부한다(변경 전에 확인). */
 	private static String requireDeviceBinding(AuthUser auth) {
-		String deviceIdHash = auth.deviceIdHash();
+		String deviceIdHash = auth.getDeviceIdHash();
 		if (deviceIdHash == null) {
 			throw new BusinessException(CommonErrorCode.UNAUTHORIZED);
 		}

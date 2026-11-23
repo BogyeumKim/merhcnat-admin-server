@@ -71,7 +71,10 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 	protected ResponseEntity<Object> handleMethodArgumentNotValid(MethodArgumentNotValidException ex, HttpHeaders headers,
 			HttpStatusCode status, WebRequest request) {
 		List<ErrorData.FieldError> errors = ex.getBindingResult().getFieldErrors().stream()
-				.map(f -> new ErrorData.FieldError(f.getField(), reason(f)))
+				.map(f -> ErrorData.FieldError.with()
+						.field(f.getField())
+						.reason(reason(f))
+						.create())
 				.toList();
 		return toResponse(ex, CommonErrorCode.INVALID_INPUT, ErrorData.fieldErrors(errors), HttpHeaders.EMPTY, request);
 	}
@@ -82,19 +85,19 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 			HttpHeaders headers, HttpStatusCode status, WebRequest request) {
 		List<ErrorData.FieldError> errors = ex.getParameterValidationResults().stream()
 				.flatMap(r -> r.getResolvableErrors().stream()
-						.map(err -> new ErrorData.FieldError(String.valueOf(r.getMethodParameter().getParameterName()), reason(err))))
+						.map(err -> ErrorData.FieldError.with()
+								.field(String.valueOf(r.getMethodParameter().getParameterName()))
+								.reason(reason(err))
+								.create()))
 				.toList();
 		return toResponse(ex, CommonErrorCode.INVALID_INPUT, ErrorData.fieldErrors(errors), HttpHeaders.EMPTY, request);
 	}
 
-	/** JSON 문법 오류·타입이 맞지 않는 본문·빈 본문 → 400. 본문이 크기 상한을 넘겨 읽기가 중단된 경우 → 413 */
+	/** JSON 문법 오류·타입이 맞지 않는 본문·빈 본문 → 400 */
 	@Override
 	protected ResponseEntity<Object> handleHttpMessageNotReadable(HttpMessageNotReadableException ex, HttpHeaders headers,
 			HttpStatusCode status, WebRequest request) {
-		ErrorCode errorCode = hasCause(ex, PayloadTooLargeException.class)
-				? CommonErrorCode.PAYLOAD_TOO_LARGE
-				: CommonErrorCode.MALFORMED_REQUEST;
-		return toResponse(ex, errorCode, null, HttpHeaders.EMPTY, request);
+		return toResponse(ex, CommonErrorCode.MALFORMED_REQUEST, null, HttpHeaders.EMPTY, request);
 	}
 
 	/**
@@ -131,15 +134,6 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 		AuthAuditContext.result(errorCode.getCode()); // 인증 경로면 감사 로그에 결과 code 로 남는다
 		return ResponseEntity.status(errorCode.getStatus()).contentType(MediaType.APPLICATION_JSON)
 				.body(ApiResponse.error(errorCode, data));
-	}
-
-	private static <T extends Throwable> boolean hasCause(Throwable ex, Class<T> type) {
-		for (Throwable t = ex; t != null; t = t.getCause()) {
-			if (type.isInstance(t)) {
-				return true;
-			}
-		}
-		return false;
 	}
 
 	private static String reason(MessageSourceResolvable error) {

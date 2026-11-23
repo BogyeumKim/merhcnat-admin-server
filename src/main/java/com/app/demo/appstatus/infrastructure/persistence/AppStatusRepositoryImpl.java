@@ -63,7 +63,8 @@ class AppStatusRepositoryImpl implements AppStatusRepository {
 			log.warn("[APP_STATUS] 잘못된 점검 기간 행을 건너뜁니다 - id={}", e.getId());
 			return Optional.empty();
 		}
-		return Optional.of(new MaintenanceWindow(e.getFrDt(), e.getToDt()));
+		MaintenanceWindow window = MaintenanceWindow.of(e.getFrDt(), e.getToDt());
+		return Optional.of(window);
 	}
 
 	/** 플랫폼·버전 형식이 잘못된 행은 운영 실수로 보고 WARN 후 건너뛴다 */
@@ -74,6 +75,11 @@ class AppStatusRepositoryImpl implements AppStatusRepository {
 			log.warn("[APP_STATUS] 잘못된 필수 버전 행을 건너뜁니다 - id={}", e.getId());
 			return Optional.empty();
 		}
-		return Optional.of(new VersionRelease(platform.get(), version.get(), e.getForceDt()));
+		VersionRelease release = VersionRelease.with()
+				.platform(platform.get())
+				.version(version.get())
+				.forceAt(e.getForceDt())
+				.create();
+		return Optional.of(release);
 	}
 }

@@ -32,7 +32,11 @@ class AppAccessFilterTest {
 
 	/** 이미 적용 중인 iOS 필수 버전 2.0.0 */
 	private static final VersionRelease IOS_MIN_2 =
-			new VersionRelease(AppPlatform.IOS, AppVersion.parse("2.0.0").orElseThrow(), LocalDateTime.of(2026, 1, 1, 0, 0));
+			VersionRelease.with()
+					.platform(AppPlatform.IOS)
+					.version(AppVersion.parse("2.0.0").orElseThrow())
+					.forceAt(LocalDateTime.of(2026, 1, 1, 0, 0))
+					.create();
 
 	@Autowired
 	MockMvc mvc;
@@ -44,13 +48,13 @@ class AppAccessFilterTest {
 	AppStatusSnapshot snapshot;
 
 	private void stubStatus(MaintenanceWindow... windows) {
-		given(snapshot.current()).willReturn(new AppStatus(List.of(windows), List.of(IOS_MIN_2)));
+		given(snapshot.current()).willReturn(AppStatus.of(List.of(windows), List.of(IOS_MIN_2)));
 	}
 
 	/** 지금 기준 (분 단위) 점검 기간 */
 	private MaintenanceWindow windowFromNow(long fromMinutes, long toMinutes) {
 		LocalDateTime now = LocalDateTime.now(clock).withNano(0);
-		return new MaintenanceWindow(now.plusMinutes(fromMinutes), now.plusMinutes(toMinutes));
+		return MaintenanceWindow.of(now.plusMinutes(fromMinutes), now.plusMinutes(toMinutes));
 	}
 
 	private String iso(LocalDateTime time) {
@@ -66,8 +70,8 @@ class AppAccessFilterTest {
 				.andExpect(status().isServiceUnavailable())
 				.andExpect(jsonPath("$.code").value("MAINTENANCE"))
 				.andExpect(jsonPath("$.message").value("서비스 점검 중입니다. 잠시 후 다시 이용해 주세요."))
-				.andExpect(jsonPath("$.data.startedAt").value(iso(window.from())))
-				.andExpect(jsonPath("$.data.endsAt").value(iso(window.to())))
+				.andExpect(jsonPath("$.data.startedAt").value(iso(window.getFrom())))
+				.andExpect(jsonPath("$.data.endsAt").value(iso(window.getTo())))
 				.andExpect(jsonPath("$.data.impact").doesNotExist());
 	}
 

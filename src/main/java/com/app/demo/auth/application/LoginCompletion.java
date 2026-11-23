@@ -38,31 +38,41 @@ class LoginCompletion {
 	/** 1단계에서 바로 완료(비밀키로 확인된 등록 기기 + loginType=MESSAGE). 기기 비밀키는 그대로 유지한다. */
 	LoginStep.Completed complete(User user, int loginType, DeviceInfo device, DeviceState state) {
 		String accessToken = finish(user, device, null);
-		return new LoginStep.Completed(session(user, loginType, state, null), accessToken);
+		SessionResult session = session(user, loginType, state, null);
+		return LoginStep.Completed.of(session, accessToken);
 	}
 
 	/** OTP/비밀번호 변경 단계를 거쳐 완료. 이 시점에 기기가 등록되므로 deviceState 는 MATCH 이고 새 기기 비밀키를 발급한다. */
 	LoginStep.Completed completeVerified(User user, DeviceInfo device) {
 		String deviceSecret = newDeviceSecret();
 		String accessToken = finish(user, device, Sha256.hex(deviceSecret));
-		return new LoginStep.Completed(session(user, user.loginTypeCode(), DeviceState.MATCH, deviceSecret), accessToken);
+		SessionResult session = session(user, user.getLoginTypeCode(), DeviceState.MATCH, deviceSecret);
+		return LoginStep.Completed.of(session, accessToken);
 	}
 
 	private String finish(User user, DeviceInfo device, @Nullable String deviceSecretHash) {
 		LocalDateTime now = LocalDateTime.now(clock);
-		users.resetFailCount(user.userId());
-		infos.markLogin(user.userId(), now);
-		infos.registerDevice(user.userId(), device, deviceSecretHash, now);
-		String deviceIdHash = Sha256.hex(device.deviceId());
-		AccessToken token = tokens.createAccessToken(user.userId(), user.userType(), deviceIdHash);
-		sessions.start(user.userId(), token, deviceIdHash); // 기존 세션(다른 기기 토큰) 교체
-		return token.value();
+		users.resetFailCount(user.getUserId());
+		infos.markLogin(user.getUserId(), now);
+		infos.registerDevice(user.getUserId(), device, deviceSecretHash, now);
+		String deviceIdHash = Sha256.hex(device.getDeviceId());
+		AccessToken token = tokens.createAccessToken(user.getUserId(), user.getUserType(), deviceIdHash);
+		sessions.start(user.getUserId(), token, deviceIdHash); // 기존 세션(다른 기기 토큰) 교체
+		return token.getValue();
 	}
 
 	/** 로그인 완료 응답용 세션 정보. 만료된 비밀번호는 완료 전에 변경을 강제하므로 passwordChangeRequired 는 보통 false 다. */
 	private SessionResult session(User user, @Nullable Integer loginType, DeviceState state, @Nullable String deviceSecret) {
-		boolean required = user.isPasswordExpired(LocalDateTime.now(clock), authProps.passwordExpireDays());
-		return new SessionResult(user.userId(), loginType, user.userType(), state, required, user.lastChangePw(), deviceSecret);
+		boolean required = user.isPasswordExpired(LocalDateTime.now(clock), authProps.getPasswordExpireDays());
+		return SessionResult.with()
+				.userId(user.getUserId())
+				.loginType(loginType)
+				.userType(user.getUserType())
+				.deviceState(state)
+				.passwordChangeRequired(required)
+				.passwordChangedAt(user.getLastChangePw())
+				.deviceSecret(deviceSecret)
+				.create();
 	}
 
 	/** 256bit 난수 → base64url(패딩 없음) */

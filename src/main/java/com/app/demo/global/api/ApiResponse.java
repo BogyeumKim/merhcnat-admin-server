@@ -1,19 +1,31 @@
 package com.app.demo.global.api;
 
 import com.app.demo.global.exception.ErrorCode;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 import org.jspecify.annotations.Nullable;
 
 /**
  * 모든 API 공통 응답 봉투.
  * 요청(각 단계)이 성공하면 HTTP 200, 실패는 4xx/5xx 로 같은 봉투가 내려간다.
- *
- * @param code    앱이 분기하는 기계용 코드 (성공은 SUCCESS)
- * @param message 사람이 읽는 참고 문구
- * @param data    응답/오류 부가 정보 (없으면 응답에서 제외)
  */
-public record ApiResponse<T>(String code, String message, @Nullable T data) {
+@JsonPropertyOrder({"code", "message", "data"})
+@Getter
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
+public class ApiResponse<T> {
 
 	private static final String SUCCESS = "SUCCESS";
+
+	/** 앱이 분기하는 기계용 코드 (성공은 SUCCESS) */
+	private final String code;
+
+	/** 사람이 읽는 참고 문구 */
+	private final String message;
+
+	/** 응답/오류 부가 정보 (없으면 응답에서 제외) */
+	private final @Nullable T data;
 
 	/** 성공 응답 (data 없음) */
 	public static <T> ApiResponse<T> ok() {

@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.app.demo.appstatus.domain.AppPlatform;
 import com.app.demo.appstatus.domain.AppStatusRepository;
+import com.app.demo.appstatus.domain.AppVersion;
 import com.app.demo.appstatus.domain.VersionRelease;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -69,8 +70,8 @@ class AppVersionRepositoryTest {
 	/** 이 테스트가 넣은 범위(2099년)의 iOS 버전만 본다 */
 	private List<String> iosVersions() {
 		return repository.findEnabledVersionReleasesFrom(NOW).stream()
-				.filter(r -> r.platform() == AppPlatform.IOS && r.forceAt().getYear() >= 2099)
-				.map(VersionRelease::version).map(Object::toString).toList();
+				.filter(r -> r.getPlatform() == AppPlatform.IOS && r.getForceAt().getYear() >= 2099)
+				.map(VersionRelease::getVersion).map(AppVersion::asText).toList();
 	}
 
 	private void insert(String platform, String version, LocalDateTime forceAt, Integer useFlg) {

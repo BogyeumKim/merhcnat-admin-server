@@ -50,9 +50,9 @@ class JwtTokenProvider implements TokenProvider {
 	private final Clock clock;
 
 	JwtTokenProvider(JwtProperties props, Clock clock) {
-		this.accessKey = Keys.hmacShaKeyFor(props.secret().getBytes(StandardCharsets.UTF_8));
-		this.challengeKey = Keys.hmacShaKeyFor(props.challengeSecret().getBytes(StandardCharsets.UTF_8));
-		this.accessTokenTtl = Duration.ofMinutes(props.expirationMinutes());
+		this.accessKey = Keys.hmacShaKeyFor(props.getSecret().getBytes(StandardCharsets.UTF_8));
+		this.challengeKey = Keys.hmacShaKeyFor(props.getChallengeSecret().getBytes(StandardCharsets.UTF_8));
+		this.accessTokenTtl = Duration.ofMinutes(props.getExpirationMinutes());
 		this.clock = clock;
 	}
 
@@ -73,7 +73,12 @@ class JwtTokenProvider implements TokenProvider {
 		if (userType != null) {
 			b.claim("userType", userType);
 		}
-		return new AccessToken(b.signWith(accessKey).compact(), jti, expiresAt);
+		String value = b.signWith(accessKey).compact();
+		return AccessToken.with()
+				.value(value)
+				.jti(jti)
+				.expiresAt(expiresAt)
+				.create();
 	}
 
 	@Override
@@ -85,7 +90,13 @@ class JwtTokenProvider implements TokenProvider {
 			if (subject == null || jti == null || exp == null) {
 				return null;
 			}
-			return new AuthUser(subject, c.get("dvh", String.class), jti, exp.toInstant());
+			String deviceIdHash = c.get("dvh", String.class);
+			return AuthUser.with()
+					.userId(subject)
+					.deviceIdHash(deviceIdHash)
+					.jti(jti)
+					.expiresAt(exp.toInstant())
+					.create();
 		});
 	}
 
@@ -107,14 +118,14 @@ class JwtTokenProvider implements TokenProvider {
 				.id(jti)
 				.audience().add(type).and()
 				.claim(TYP, type)
-				.claim("did", d.deviceId())
-				.claim("plt", d.platform())
+				.claim("did", d.getDeviceId())
+				.claim("plt", d.getPlatform())
 				.issuedAt(Date.from(now))
 				.expiration(Date.from(now.plusSeconds(ttlSeconds)));
 		// 기기 정보는 토큰에 실어 두어 서버에 별도 저장하지 않는다 (null 값은 제외)
-		putIfPresent(b, "osv", d.osVersion());
-		putIfPresent(b, "mdl", d.deviceModel());
-		putIfPresent(b, "app", d.appVersion());
+		putIfPresent(b, "osv", d.getOsVersion());
+		putIfPresent(b, "mdl", d.getDeviceModel());
+		putIfPresent(b, "app", d.getAppVersion());
 		return b.signWith(challengeKey).compact();
 	}
 
@@ -138,9 +149,17 @@ class JwtTokenProvider implements TokenProvider {
 			if (subject == null || jti == null || did == null || plt == null || exp == null) {
 				return null;
 			}
-			DeviceInfo device = new DeviceInfo(did, plt,
-					c.get("osv", String.class), c.get("mdl", String.class), c.get("app", String.class));
-			return new MfaClaims(subject, jti, device, LocalDateTime.ofInstant(exp.toInstant(), clock.getZone()));
+			String osVersion = c.get("osv", String.class);
+			String deviceModel = c.get("mdl", String.class);
+			String appVersion = c.get("app", String.class);
+			DeviceInfo device = DeviceInfo.of(did, plt, osVersion, deviceModel, appVersion);
+			LocalDateTime expiresAt = LocalDateTime.ofInstant(exp.toInstant(), clock.getZone());
+			return MfaClaims.with()
+					.userId(subject)
+					.jti(jti)
+					.device(device)
+					.expiresAt(expiresAt)
+					.create();
 		});
 	}
 

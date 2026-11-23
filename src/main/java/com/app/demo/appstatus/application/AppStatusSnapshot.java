@@ -2,8 +2,11 @@ package com.app.demo.appstatus.application;
 
 import com.app.demo.appstatus.domain.AppStatus;
 import com.app.demo.appstatus.domain.AppStatusRepository;
+import com.app.demo.appstatus.domain.MaintenanceWindow;
+import com.app.demo.appstatus.domain.VersionRelease;
 import java.time.Clock;
 import java.time.LocalDateTime;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataAccessException;
@@ -54,13 +57,15 @@ public class AppStatusSnapshot {
 	}
 
 	private AppStatus load(LocalDateTime now) {
-		return new AppStatus(repository.findEnabledMaintenanceWindowsEndingAfter(now), repository.findEnabledVersionReleasesFrom(now));
+		List<MaintenanceWindow> windows = repository.findEnabledMaintenanceWindowsEndingAfter(now);
+		List<VersionRelease> releases = repository.findEnabledVersionReleasesFrom(now);
+		return AppStatus.of(windows, releases);
 	}
 
 	/** 점검 일정(진행 중 + 예약) 건수가 바뀔 때만 한 줄 남긴다 */
 	private static void logScheduleChange(AppStatus before, AppStatus after) {
-		int was = before.maintenanceWindows().size();
-		int now = after.maintenanceWindows().size();
+		int was = before.getMaintenanceWindows().size();
+		int now = after.getMaintenanceWindows().size();
 		if (was != now) {
 			log.info("[APP_STATUS] 남은 점검 일정 {}건", now);
 		}
