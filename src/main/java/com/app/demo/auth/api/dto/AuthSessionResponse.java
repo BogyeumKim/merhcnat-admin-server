@@ -13,11 +13,17 @@ import org.jspecify.annotations.Nullable;
  * 로그인 완료(200, code=SUCCESS) data. deviceState: NONE | MATCH | CHANGED.
  * 만료된 비밀번호는 로그인 완료 전에 변경을 강제하므로 passwordChangeRequired 는 호환용이며 보통 false 다.
  */
-@JsonPropertyOrder({"userId", "accessToken", "loginType", "userType", "deviceState", "passwordChangeRequired", "passwordChangeSkippable", "passwordChangedAt", "deviceSecret"})
+@JsonPropertyOrder({"step", "userId", "accessToken", "loginType", "userType", "deviceState", "passwordChangeRequired", "passwordChangeSkippable", "passwordChangedAt", "deviceSecret"})
 @Getter
 @Builder(builderMethodName = "with", buildMethodName = "create")
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public final class AuthSessionResponse implements AuthStepResponse {
+
+	/** 로그인 완료. accessToken 을 이후 요청의 Bearer 토큰으로 쓴다 */
+	@Override
+	public String getStep() {
+		return "SUCCESS";
+	}
 
 	private final String userId;
 

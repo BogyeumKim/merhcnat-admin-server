@@ -1,6 +1,5 @@
 package com.app.demo.user.api;
 
-import com.app.demo.global.api.ApiResponse;
 import com.app.demo.global.security.AuthUser;
 import com.app.demo.user.api.dto.DeviceUpdateRequest;
 import com.app.demo.user.application.DeviceService;
@@ -23,14 +22,12 @@ public class DeviceController {
 
 	/** 로그인 완료 후 현재 기기의 푸시 토큰을 갱신한다. 성공 시 200 */
 	@PutMapping(value = "/api/devices/me", consumes = MediaType.APPLICATION_JSON_VALUE)
-	public ApiResponse<Void> update(
+	public void update(
 			@AuthenticationPrincipal AuthUser user,
 			@Valid @RequestBody DeviceUpdateRequest request) {
 
 		log.info("Device push update received");
 
 		deviceService.updatePush(user, request.getDeviceSecret(), request.getExpoPushToken());
-
-		return ApiResponse.ok();
 	}
 }

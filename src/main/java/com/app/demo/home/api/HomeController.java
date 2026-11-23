@@ -1,6 +1,5 @@
 package com.app.demo.home.api;
 
-import com.app.demo.global.api.ApiResponse;
 import com.app.demo.global.security.AuthUser;
 import com.app.demo.home.api.dto.HomeSummaryResponse;
 import com.app.demo.home.application.HomeService;
@@ -22,13 +21,12 @@ public class HomeController {
 
 	/** 홈 화면에 필요한 요약 값 (현재 요약 수치는 더미) */
 	@GetMapping("/api/home/summary")
-	public ApiResponse<HomeSummaryResponse> summary(@AuthenticationPrincipal AuthUser user) {
+	public HomeSummaryResponse summary(@AuthenticationPrincipal AuthUser user) {
 		log.info("Home summary received");
 
 		HomeSummary summary = homeService.summary(user.getUserId());
 		Notice latestNotice = homeService.latestNotice().orElse(null);
 
-		HomeSummaryResponse data = HomeSummaryResponse.of(summary, latestNotice);
-		return ApiResponse.ok(data);
+		return HomeSummaryResponse.of(summary, latestNotice);
 	}
 }

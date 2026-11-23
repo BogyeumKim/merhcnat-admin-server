@@ -1,6 +1,5 @@
 package com.app.demo.notice.api;
 
-import com.app.demo.global.api.ApiResponse;
 import com.app.demo.notice.api.dto.NoticePopupResponse;
 import com.app.demo.notice.application.NoticeService;
 import com.app.demo.notice.domain.Notice;
@@ -20,12 +19,11 @@ public class NoticeController {
 
 	/** 로그인 후 팝업으로 띄울 공지 목록 (우선순위 순) */
 	@GetMapping("/api/notices/popup")
-	public ApiResponse<NoticePopupResponse> popup() {
+	public NoticePopupResponse popup() {
 		log.info("Notice popup received");
 
 		List<Notice> notices = noticeService.popups();
 
-		NoticePopupResponse data = NoticePopupResponse.from(notices);
-		return ApiResponse.ok(data);
+		return NoticePopupResponse.from(notices);
 	}
 }

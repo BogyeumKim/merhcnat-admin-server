@@ -12,11 +12,22 @@ import lombok.Getter;
 import org.jspecify.annotations.Nullable;
 
 /** OTP 필요(200, code=MFA_REQUIRED) data. */
-@JsonPropertyOrder({"userId", "loginType", "userType", "deviceState", "channels", "lastUsedChannel", "challengeToken", "registeredUserIdMasked", "deviceRegisteredToOtherAccount"})
+@JsonPropertyOrder({"step", "message", "userId", "loginType", "userType", "deviceState", "channels", "lastUsedChannel", "challengeToken", "registeredUserIdMasked", "deviceRegisteredToOtherAccount"})
 @Getter
 @Builder(builderMethodName = "with", buildMethodName = "create")
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public final class MfaChallengeResponse implements AuthStepResponse {
+
+	/** id/pw 통과, OTP 필요. challengeToken 으로 otp/send·otp/verify 를 진행한다 */
+	@Override
+	public String getStep() {
+		return "MFA_REQUIRED";
+	}
+
+	/** 앱이 분기에 쓰지 않는 참고 문구 */
+	public String getMessage() {
+		return "추가 인증이 필요합니다.";
+	}
 
 	private final String userId;
 

@@ -4,7 +4,6 @@ import com.app.demo.auth.api.dto.PasswordChangeRequest;
 import com.app.demo.auth.api.dto.PasswordChangedResponse;
 import com.app.demo.auth.application.PasswordService;
 import com.app.demo.auth.domain.AccessToken;
-import com.app.demo.global.api.ApiResponse;
 import com.app.demo.global.security.AuthUser;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -24,11 +23,11 @@ public class PasswordController {
 	private final PasswordService passwordService;
 
 	/**
-	 * 비밀번호 변경. 성공 시 200 + data.accessToken(새 토큰, 세션 교체 → 이전 토큰은 즉시 SESSION_REPLACED). 로그인은 유지된다.
+	 * 비밀번호 변경. 성공 시 200 + accessToken(새 토큰, 세션 교체 → 이전 토큰은 즉시 SESSION_REPLACED). 로그인은 유지된다.
 	 * 400 CURRENT_PASSWORD_INVALID / PASSWORD_POLICY_VIOLATION, 409 PASSWORD_REUSED, 423 ACCOUNT_LOCKED
 	 */
 	@PutMapping(value = "/api/users/me/password", consumes = MediaType.APPLICATION_JSON_VALUE)
-	public ApiResponse<PasswordChangedResponse> change(
+	public PasswordChangedResponse change(
 			@AuthenticationPrincipal AuthUser user,
 			@Valid @RequestBody PasswordChangeRequest request) {
 
@@ -36,7 +35,6 @@ public class PasswordController {
 
 		AccessToken token = passwordService.change(user, request.getCurrentPassword(), request.getNewPassword());
 
-		PasswordChangedResponse data = PasswordChangedResponse.from(token);
-		return ApiResponse.ok(data);
+		return PasswordChangedResponse.from(token);
 	}
 }
