@@ -11,7 +11,7 @@ import lombok.Builder;
 import lombok.Getter;
 import org.jspecify.annotations.Nullable;
 
-/** OTP 필요(200, code=MFA_REQUIRED) data. */
+/** OTP 필요(200, step=MFA_REQUIRED). 본문 최상위에 그대로 내려간다. */
 @JsonPropertyOrder({"step", "message", "userId", "loginType", "userType", "deviceState", "channels", "lastUsedChannel", "challengeToken", "registeredUserIdMasked", "deviceRegisteredToOtherAccount"})
 @Getter
 @Builder(builderMethodName = "with", buildMethodName = "create")

@@ -10,7 +10,7 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 public class AccountPolicy {
 
-	/** ex) 삭제 계정 → {@code INVALID_CREDENTIALS}(없는 계정과 같은 401), 정지 계정 → {@code ACCOUNT_SUSPENDED}(403) */
+	/** ex) 삭제 계정 → {@code INVALID_CREDENTIALS}(없는 계정과 같은 401), 정지 계정 → {@code ACCOUNT_SUSPENDED}(400), 사용 아님 → {@code LOGIN_NOT_ALLOWED}(400) */
 	public Optional<ErrorCode> checkUsable(User user) {
 		if (user.isDeleted()) {
 			return Optional.of(AuthErrorCode.INVALID_CREDENTIALS);

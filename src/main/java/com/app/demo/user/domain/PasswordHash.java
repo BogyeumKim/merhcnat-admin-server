@@ -6,7 +6,11 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
 import lombok.experimental.UtilityClass;
 
-/** 비밀번호 해시. 기존 MMS 앱이 저장한 값과 그대로 비교하려고 같은 방식(MD5 → Base64 → SHA-512 → Base64)을 쓴다. */
+/**
+ * 비밀번호 해시. 기존 MMS 앱이 저장한 값과 그대로 비교하려고 같은 방식(MD5 → Base64 → SHA-512 → Base64)을 쓴다.
+ * 솔트 없는 빠른 해시라 레거시 호환 목적으로만 유지한다. 추후 bcrypt 로 옮긴다
+ * (Spring Security {@code DelegatingPasswordEncoder} 로 옛 형식을 읽고, 로그인 성공 시 새 형식으로 다시 저장).
+ */
 @UtilityClass
 public class PasswordHash {
 

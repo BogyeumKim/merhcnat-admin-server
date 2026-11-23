@@ -33,7 +33,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * 공격자가 임의의 경로·메서드·헤더·본문을 보냈을 때 항상 공통 봉투 + 올바른 4xx 가 나가는지 검증한다.
+ * 공격자가 임의의 경로·메서드·헤더·본문을 보냈을 때 항상 오류 응답(ErrorResponse {code, message}) + 올바른 4xx 가 나가는지 검증한다.
  * 비인증 요청은 경로 존재 여부와 상관없이 401, 인증된 요청은 404/405/406/415/400/413 으로 구분된다.
  */
 @SpringBootTest
@@ -141,6 +141,15 @@ class HttpErrorHandlingTest {
 				400, "BAD_REQUEST");
 		expectEnvelope(mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
 				.accept(MediaType.APPLICATION_XML).content("{}")), 400, "BAD_REQUEST");
+	}
+
+	// ── 본문 크기 ──
+
+	@Test
+	void oversizedBodyIs413() throws Exception {
+		String big = "{\"userId\":\"" + "a".repeat(70 * 1024) + "\"}";
+		expectEnvelope(mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON).content(big)),
+				413, "PAYLOAD_TOO_LARGE");
 	}
 
 	// ── 방화벽(StrictHttpFirewall) 거부 ──

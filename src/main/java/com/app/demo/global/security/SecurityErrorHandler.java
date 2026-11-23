@@ -18,7 +18,7 @@ import org.springframework.security.web.firewall.RequestRejectedHandler;
 import org.springframework.stereotype.Component;
 
 /**
- * 필터 단계(컨트롤러 도달 전)의 인증/인가 실패를 공통 봉투로 응답한다.
+ * 필터 단계(컨트롤러 도달 전)의 인증/인가 실패를 오류 응답(ErrorResponse {code, message})으로 쓴다.
  * GlobalExceptionHandler 는 컨트롤러 안의 예외만 받으므로 Spring Security 실패는 여기서 처리한다.
  * <ul>
  *   <li>토큰 없음/무효로 보호된 경로 접근 → 401 UNAUTHORIZED</li>

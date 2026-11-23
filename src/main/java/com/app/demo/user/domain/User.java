@@ -1,5 +1,7 @@
 package com.app.demo.user.domain;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -82,13 +84,25 @@ public class User {
 	/** 입력한 원문의 해시가 저장된 비밀번호와 같은지 */
 	public boolean passwordMatches(String raw) {
 		String hashed = PasswordHash.of(raw);
-		return hashed.equals(password);
+		return sameHash(hashed, password);
 	}
 
 	/** 재사용 금지: 현재 비밀번호 또는 이전 비밀번호(최근 3개)와 같으면 true */
 	public boolean passwordReused(String raw) {
 		String hashed = PasswordHash.of(raw);
-		return hashed.equals(password) || oldPasswords.contains(hashed);
+		boolean current = sameHash(hashed, password);
+		boolean old = oldPasswords.stream().anyMatch(oldHash -> sameHash(hashed, oldHash));
+		return current || old;
+	}
+
+	/** 해시 비교는 상수 시간으로 한다(String.equals 는 앞에서부터 다른 글자에서 멈춰 응답 시간으로 값이 드러날 수 있다) */
+	private static boolean sameHash(String hashed, @Nullable String stored) {
+		if (stored == null) {
+			return false;
+		}
+		byte[] left = hashed.getBytes(StandardCharsets.UTF_8);
+		byte[] right = stored.getBytes(StandardCharsets.UTF_8);
+		return MessageDigest.isEqual(left, right);
 	}
 
 	/** 마지막 변경 후 expireDays 일이 지났는지 (변경 기록이 없으면 만료되지 않은 것으로 본다) */

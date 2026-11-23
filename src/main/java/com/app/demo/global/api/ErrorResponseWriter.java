@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * Spring MVC 바깥(필터, 보안 처리기, 오류 페이지, Tomcat 밸브)에서 오류 봉투를 응답에 직접 쓴다.
+ * Spring MVC 바깥(필터, 보안 처리기, 오류 페이지, Tomcat 밸브)에서 오류 응답(ErrorResponse)을 직접 쓴다. 성공 응답은 각 API 의 DTO 라 여기서 다루지 않는다.
  * 컨트롤러 안의 오류는 GlobalExceptionHandler 가 ResponseEntity 로 만들고, 여기는 그 밖의 경로를 같은 형식으로 맞춘다.
  */
 @Component

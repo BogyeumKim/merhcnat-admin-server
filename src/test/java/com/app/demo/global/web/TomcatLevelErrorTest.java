@@ -15,7 +15,7 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 
 /**
  * Spring 에 도달하기 전 Tomcat 단계에서 거부되는 요청과, 실제 서블릿 컨테이너에서만 재현되는 경우(TRACE, chunked 본문)를
- * 원시 소켓으로 보내 검증한다. 어떤 경우에도 HTML·서버 버전 없이 공통 JSON 봉투가 나가야 한다.
+ * 원시 소켓으로 보내 검증한다. 어떤 경우에도 HTML·서버 버전 없이 JSON 오류 응답(ErrorResponse)이 나가야 한다.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class TomcatLevelErrorTest {

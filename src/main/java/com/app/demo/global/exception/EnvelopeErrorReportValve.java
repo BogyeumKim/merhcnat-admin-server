@@ -13,7 +13,7 @@ import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Tomcat 이 Spring 에 넘기기 전에 거부한 요청(인코딩된 '/', 잘못된 헤더 문자, 너무 큰 헤더, 잘못된 요청 줄 등)의 오류 응답.
- * 기본 ErrorReportValve 는 서버 버전이 들어간 HTML 을 내려주므로, 같은 상황을 공통 JSON 봉투로 바꾼다.
+ * 기본 ErrorReportValve 는 서버 버전이 들어간 HTML 을 내려주므로, 같은 상황을 JSON 오류 응답(ErrorResponse)으로 바꾼다.
  * 응답 본문에는 서버/프레임워크 정보·예외 내용을 넣지 않는다. 구현은 Tomcat 의 JsonErrorReportValve 와 같은 절차를 따른다.
  */
 public class EnvelopeErrorReportValve extends ErrorReportValve {

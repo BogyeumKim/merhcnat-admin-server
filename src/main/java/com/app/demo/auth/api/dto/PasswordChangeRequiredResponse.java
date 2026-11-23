@@ -8,7 +8,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 
-/** 비밀번호 변경 필요(200, code=PASSWORD_CHANGE_REQUIRED) data. 아직 로그인 전이라 Access-Token 은 없다. */
+/** 비밀번호 변경 필요(200, step=PASSWORD_CHANGE_REQUIRED). 본문 최상위에 그대로 내려간다. 아직 로그인 전이라 Access-Token 은 없다. */
 @JsonPropertyOrder({"step", "message", "userId", "challengeToken", "reason"})
 @Getter
 @Builder(builderMethodName = "with", buildMethodName = "create")

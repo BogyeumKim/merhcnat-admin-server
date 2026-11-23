@@ -25,8 +25,8 @@ class SecurityConfig {
 				.csrf(AbstractHttpConfigurer::disable) // 쿠키 세션을 쓰지 않는 API 서버
 				.sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 				.exceptionHandling(e -> e
-						.authenticationEntryPoint(securityErrorHandler) // 토큰 없음/무효 → 401 공통 봉투
-						.accessDeniedHandler(securityErrorHandler))     // 권한 없음 → 403 공통 봉투
+						.authenticationEntryPoint(securityErrorHandler) // 토큰 없음/무효 → 401 ErrorResponse
+						.accessDeniedHandler(securityErrorHandler))     // 권한 없음 → 403 ErrorResponse
 				.authorizeHttpRequests(a -> a
 						// 오류 페이지(/error) 내부 전달은 허용: 원래 요청이 이미 인증 검사를 거쳤고, 그래야 405/400 등이 실제 status 로 나간다.
 						// (/error 를 직접 호출하는 REQUEST 는 여전히 인증이 필요하다)

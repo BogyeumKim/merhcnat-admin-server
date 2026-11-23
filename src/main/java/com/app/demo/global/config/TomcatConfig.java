@@ -13,7 +13,7 @@ import org.springframework.core.annotation.Order;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * 내장 Tomcat 설정: 기본 오류 밸브(HTML + 서버 정보)를 공통 JSON 봉투 밸브로 교체한다.
+ * 내장 Tomcat 설정: 기본 오류 밸브(HTML + 서버 정보)를 JSON 오류 응답(ErrorResponse) 밸브로 교체한다.
  * Spring Boot 가 추가한 ErrorReportValve 까지 지우도록 가장 마지막 순서로 적용한다.
  */
 @Configuration

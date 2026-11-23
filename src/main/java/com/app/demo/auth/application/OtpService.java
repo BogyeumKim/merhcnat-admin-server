@@ -61,8 +61,8 @@ public class OtpService {
 		if (channelRejection.isPresent()) {
 			throw new BusinessException(channelRejection.orElseThrow());
 		}
-		OtpChannel channel = OtpChannel.parse(cmd.getChannel()).orElseThrow();
-		String destination = channel.contactOf(user).orElseThrow();
+		OtpChannel channel = OtpChannel.parse(cmd.getChannel()).orElseThrow(OtpService::channelInvalid);
+		String destination = channel.contactOf(user).orElseThrow(OtpService::channelInvalid);
 
 		// ── [3단계] 발송: 횟수 예약 → 해시 저장 → 발송 ──
 		LocalDateTime now = LocalDateTime.now(clock);
@@ -88,7 +88,7 @@ public class OtpService {
 		if (channelRejection.isPresent()) {
 			throw new BusinessException(channelRejection.orElseThrow());
 		}
-		OtpChannel channel = OtpChannel.parse(cmd.getChannel()).orElseThrow();
+		OtpChannel channel = OtpChannel.parse(cmd.getChannel()).orElseThrow(OtpService::channelInvalid);
 
 		// ── [3단계] 검증: 코드 비교 → 챌린지 소진 ──
 		if (channel == OtpChannel.TOTP) {
@@ -189,7 +189,7 @@ public class OtpService {
 		return wanted.isBefore(cap) ? wanted : cap;
 	}
 
-	/** 예약 실패 사유: 챌린지당 상한(429, data 없음) → 그 외는 챌린지가 바뀐 경우(401) */
+	/** 예약 실패 사유: 챌린지당 상한(400 OTP_SEND_LIMIT_EXCEEDED, data 없음) → 그 외는 챌린지가 바뀐 경우(401) */
 	private BusinessException sendRejection(UserInfo info) {
 		if (info.hasReachedChallengeSendLimit(otpProps.getMaxSendsPerChallenge())) {
 			return new BusinessException(AuthErrorCode.OTP_SEND_LIMIT_EXCEEDED);
@@ -219,5 +219,10 @@ public class OtpService {
 	private boolean isDevFixedCode(String otp) {
 		String fixed = otpProps.getDevFixedCode();
 		return fixed != null && !fixed.isBlank() && fixed.equals(otp);
+	}
+
+	/** 정책 검사를 통과했는데도 수단·수신처를 못 구하면(정책과 어긋남) 500 이 아니라 같은 400 으로 막는다 */
+	private static BusinessException channelInvalid() {
+		return new BusinessException(AuthErrorCode.OTP_CHANNEL_INVALID);
 	}
 }

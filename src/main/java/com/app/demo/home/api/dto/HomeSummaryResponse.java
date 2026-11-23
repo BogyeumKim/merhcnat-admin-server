@@ -9,7 +9,7 @@ import lombok.Builder;
 import lombok.Getter;
 import org.jspecify.annotations.Nullable;
 
-/** GET /api/home/summary 응답 data. 날짜는 ISO(yyyy-MM-dd), 금액은 원 단위 정수. 최근 공지가 없으면 latestNotice 는 응답에서 제외. */
+/** GET /api/home/summary 응답 본문(200). 날짜는 ISO(yyyy-MM-dd), 금액은 원 단위 정수. 최근 공지가 없으면 latestNotice 는 응답에서 제외. */
 @JsonPropertyOrder({"storeName", "todaySales", "approvalCount", "cancellationCount", "nextDepositAmount", "nextDepositDate", "monthSales", "prepayAvailable", "latestNotice"})
 @Getter
 @Builder(builderMethodName = "with", buildMethodName = "create")

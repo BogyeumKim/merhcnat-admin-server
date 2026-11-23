@@ -62,7 +62,7 @@ otp:
 app-status:
   maintenance-path-prefix: /api/   # 점검(503) 적용 경로. /api/ = 로그인 전후 전체, /api/auth/ 로 바꾸면 로그인 단계만
 
-# 요청·응답 로그. 비밀번호·OTP·토큰·기기 비밀키는 값을 가려 남긴다(키 이름은 남긴다).
+# 요청·응답 로그. 비밀번호와 토큰류(Access·챌린지·기기 비밀키·푸시 토큰)는 값을 가려 남긴다(키 이름은 남긴다). OTP 는 짧게 만료되는 일회용 값이라 남긴다.
 logbook:
   format:
     style: json
@@ -76,7 +76,6 @@ logbook:
       - password
       - currentPassword
       - newPassword
-      - otp
       - deviceSecret
       - accessToken
       - challengeToken

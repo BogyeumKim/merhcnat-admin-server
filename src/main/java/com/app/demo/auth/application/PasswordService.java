@@ -33,7 +33,7 @@ public class PasswordService {
 	private final TokenProvider tokens;
 	private final Clock clock;
 
-	/** 새 비밀번호 검증: 규칙 위반(400) / 재사용 금지(409). 실패 횟수에는 합산하지 않는다. */
+	/** 새 비밀번호 검증: 규칙 위반(400 PASSWORD_POLICY_VIOLATION) / 재사용 금지(400 PASSWORD_REUSED). 실패 횟수에는 합산하지 않는다. */
 	public void checkNewPassword(User user, String newPassword) {
 		List<String> violations = PasswordPolicy.violations(user.getUserId(), newPassword);
 		if (!violations.isEmpty()) {

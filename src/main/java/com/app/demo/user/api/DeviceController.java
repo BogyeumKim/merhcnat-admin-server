@@ -2,6 +2,7 @@ package com.app.demo.user.api;
 
 import com.app.demo.global.security.AuthUser;
 import com.app.demo.user.api.dto.DeviceUpdateRequest;
+import com.app.demo.user.api.dto.DeviceUpdatedResponse;
 import com.app.demo.user.application.DeviceService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -20,14 +21,16 @@ public class DeviceController {
 
 	private final DeviceService deviceService;
 
-	/** 로그인 완료 후 현재 기기의 푸시 토큰을 갱신한다. 성공 시 200 */
+	/** 로그인 완료 후 현재 기기의 푸시 토큰을 갱신한다. 성공 시 200 {@code {updated: true}} */
 	@PutMapping(value = "/api/devices/me", consumes = MediaType.APPLICATION_JSON_VALUE)
-	public void update(
+	public DeviceUpdatedResponse update(
 			@AuthenticationPrincipal AuthUser user,
 			@Valid @RequestBody DeviceUpdateRequest request) {
 
 		log.info("Device push update received");
 
 		deviceService.updatePush(user, request.getDeviceSecret(), request.getExpoPushToken());
+
+		return DeviceUpdatedResponse.success();
 	}
 }

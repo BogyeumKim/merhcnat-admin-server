@@ -8,7 +8,7 @@ import lombok.Builder;
 import lombok.Getter;
 import org.jspecify.annotations.Nullable;
 
-/** OTP 발송 성공 data. remainingSends 는 이 챌린지에서 남은 발송 횟수. maskedPhone 은 전환 기간용(KAKAO/SMS 만, EMAIL 이면 응답에서 제외) */
+/** OTP 발송 성공(200) 본문. remainingSends 는 이 챌린지에서 남은 발송 횟수. maskedPhone 은 전환 기간용(KAKAO/SMS 만, EMAIL 이면 응답에서 제외) */
 @JsonPropertyOrder({"expiresInSeconds", "resendAfterSeconds", "remainingSends", "maskedDestination", "maskedPhone"})
 @Getter
 @Builder(builderMethodName = "with", buildMethodName = "create")

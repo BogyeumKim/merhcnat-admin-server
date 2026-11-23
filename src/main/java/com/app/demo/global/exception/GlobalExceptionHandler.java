@@ -6,6 +6,7 @@ import com.app.demo.global.api.ErrorDetail;
 import com.app.demo.global.security.AuthAuditContext;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
+import java.util.Objects;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.Nullable;
 import org.springframework.context.MessageSourceResolvable;
@@ -31,14 +32,14 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
  *   <li>비즈니스 흐름(서비스·컨트롤러)에서는 try-catch 를 쓰지 않는다. 검증에 실패한 곳에서 {@link BusinessException} 을 던지고 여기서 응답을 만든다.</li>
  *   <li>try-catch 는 인프라 경계에서만 쓴다(JWT 파싱 실패 → Optional.empty, DB 중복키 경합, 암호화 라이브러리 checked 예외 → IllegalStateException).</li>
  *   <li>Spring MVC 표준 예외(404, 405, 415, 본문 형식 오류, 파라미터 누락·타입 불일치 등)는 {@link ResponseEntityExceptionHandler} 가 받아
- *       {@link #handleExceptionInternal} 에서 같은 봉투로 바꾼다.</li>
- *   <li>필터 단계의 인증/인가 실패는 컨트롤러에 도달하지 않으므로 global.security 의 {@code SecurityErrorHandler} 가 같은 봉투로 응답한다.</li>
+ *       {@link #handleExceptionInternal} 에서 같은 ErrorResponse 로 바꾼다.</li>
+ *   <li>필터 단계의 인증/인가 실패는 컨트롤러에 도달하지 않으므로 global.security 의 {@code SecurityErrorHandler} 가 같은 ErrorResponse 로 응답한다.</li>
  * </ul>
  * 로그: 클라이언트 오류(4xx)는 WARN 한 줄, 예상하지 못한 오류(5xx)는 ERROR + 스택트레이스. 비밀번호·토큰·OTP 값은 남기지 않는다.
  * 요청 경로는 공격자가 정하는 값이라 {@link LogSafe} 로 잘라서(제어 문자 제거) 남긴다.
  *
  * <p>오류 응답은 Content-Type 을 JSON 으로 고정한다. 클라이언트가 {@code Accept: application/xml} 처럼 JSON 을 받지 않겠다고 해도
- * 오류 봉투는 항상 JSON 으로 내려간다(그렇지 않으면 오류 응답 자체를 쓰지 못해 상태 코드가 뒤바뀐다).
+ * 오류 응답은 항상 JSON 으로 내려간다(그렇지 않으면 오류 응답 자체를 쓰지 못해 상태 코드가 뒤바뀐다).
  */
 @Slf4j
 @RestControllerAdvice
@@ -93,11 +94,14 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 		return toResponse(ex, CommonErrorCode.INVALID_INPUT, ErrorData.fieldErrors(errors), HttpHeaders.EMPTY, request);
 	}
 
-	/** JSON 문법 오류·타입이 맞지 않는 본문·빈 본문 → 400 */
+	/** JSON 문법 오류·타입이 맞지 않는 본문·빈 본문 → 400. 본문이 크기 상한을 넘겨 읽기가 중단된 경우 → 413 */
 	@Override
 	protected ResponseEntity<Object> handleHttpMessageNotReadable(HttpMessageNotReadableException ex, HttpHeaders headers,
 			HttpStatusCode status, WebRequest request) {
-		return toResponse(ex, CommonErrorCode.MALFORMED_REQUEST, null, HttpHeaders.EMPTY, request);
+		ErrorCode errorCode = hasCause(ex, PayloadTooLargeException.class)
+				? CommonErrorCode.PAYLOAD_TOO_LARGE
+				: CommonErrorCode.MALFORMED_REQUEST;
+		return toResponse(ex, errorCode, null, HttpHeaders.EMPTY, request);
 	}
 
 	/**
@@ -111,7 +115,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 	}
 
 	/**
-	 * Spring MVC 예외용: 로그를 남기고 봉투로 감싼다.
+	 * Spring MVC 예외용: 로그를 남기고 ErrorResponse 로 바꾼다.
 	 * 반환 타입이 {@code ResponseEntity<Object>} 인 것은 부모 {@link ResponseEntityExceptionHandler} 의 재정의 메서드 시그니처를
 	 * 따라야 하기 때문이며, 본문은 항상 {@link ErrorResponse} 이다.
 	 */
@@ -136,8 +140,16 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 				.body(ErrorResponse.of(errorCode, data));
 	}
 
+	private static <T extends Throwable> boolean hasCause(Throwable ex, Class<T> type) {
+		for (Throwable t = ex; t != null; t = t.getCause()) {
+			if (type.isInstance(t)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	private static String reason(MessageSourceResolvable error) {
-		String message = error.getDefaultMessage();
-		return message == null ? "invalid" : message;
+		return Objects.requireNonNullElse(error.getDefaultMessage(), "invalid");
 	}
 }

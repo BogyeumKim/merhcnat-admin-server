@@ -68,7 +68,7 @@ public class LoginService {
 
 	/**
 	 * id/pw 검증. 없는 아이디·틀린 비밀번호·삭제 계정은 status/code/data 까지 똑같은 401 로 응답해 아이디 존재 여부를 숨긴다.
-	 * 잠금(423)·정지(403)는 비밀번호가 맞았을 때만 알려 준다.
+	 * 잠금(400 ACCOUNT_LOCKED)·정지(400 ACCOUNT_SUSPENDED)는 비밀번호가 맞았을 때만 알려 준다.
 	 * 주의: 비밀번호를 해시(bcrypt 등)로 바꾸면 없는 아이디에도 더미 해시 비교를 넣어 응답 시간을 맞춘다.
 	 */
 	private User authenticate(String userId, String password) {

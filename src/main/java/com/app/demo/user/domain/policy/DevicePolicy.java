@@ -8,7 +8,7 @@ import java.util.Optional;
 import lombok.experimental.UtilityClass;
 
 /**
- * 푸시 토큰을 갱신할 수 있는 등록 기기인지 가른다. 등록 기기 일치(404) → 기기 비밀키(403) 순으로 처음 걸린 사유.
+ * 푸시 토큰을 갱신할 수 있는 등록 기기인지 가른다. 등록 기기 일치(400 DEVICE_NOT_FOUND) → 기기 비밀키(400 DEVICE_NOT_VERIFIED) 순으로 처음 걸린 사유.
  * 기기 ID 는 비밀이 아니므로 ID 만으로는 다른 사람의 푸시 토큰을 덮어쓸 수 없게 한다.
  */
 @UtilityClass

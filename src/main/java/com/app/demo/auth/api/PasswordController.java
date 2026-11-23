@@ -24,7 +24,7 @@ public class PasswordController {
 
 	/**
 	 * 비밀번호 변경. 성공 시 200 + accessToken(새 토큰, 세션 교체 → 이전 토큰은 즉시 SESSION_REPLACED). 로그인은 유지된다.
-	 * 400 CURRENT_PASSWORD_INVALID / PASSWORD_POLICY_VIOLATION, 409 PASSWORD_REUSED, 423 ACCOUNT_LOCKED
+	 * 400 CURRENT_PASSWORD_INVALID / PASSWORD_POLICY_VIOLATION / PASSWORD_REUSED / ACCOUNT_LOCKED
 	 */
 	@PutMapping(value = "/api/users/me/password", consumes = MediaType.APPLICATION_JSON_VALUE)
 	public PasswordChangedResponse change(

@@ -10,7 +10,7 @@ import lombok.Builder;
 import lombok.Getter;
 import org.jspecify.annotations.Nullable;
 
-/** GET /api/notices/popup 응답 data. 공지가 없으면 notices 는 빈 배열. */
+/** GET /api/notices/popup 응답 본문(200). 공지가 없으면 notices 는 빈 배열. */
 @Getter
 @Builder(builderMethodName = "with", buildMethodName = "create")
 @AllArgsConstructor(access = AccessLevel.PRIVATE)

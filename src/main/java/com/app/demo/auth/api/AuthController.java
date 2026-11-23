@@ -75,7 +75,7 @@ public class AuthController {
 
 	/**
 	 * 임시비밀번호 변경 (challengeToken 필요, Bearer 불필요). 성공하면 로그인 완료.
-	 * 400 CURRENT_PASSWORD_INVALID(5회 합산 잠금) / PASSWORD_POLICY_VIOLATION, 409 PASSWORD_REUSED, 401 CHALLENGE_EXPIRED, 423 ACCOUNT_LOCKED
+	 * 400 CURRENT_PASSWORD_INVALID(5회 합산 잠금) / PASSWORD_POLICY_VIOLATION / PASSWORD_REUSED / ACCOUNT_LOCKED, 401 CHALLENGE_EXPIRED
 	 */
 	@PostMapping(value = "/api/auth/password/temp", consumes = MediaType.APPLICATION_JSON_VALUE)
 	public AuthStepResponse changeTempPassword(@Valid @RequestBody TempPasswordChangeRequest request) {

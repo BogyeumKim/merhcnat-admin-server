@@ -29,7 +29,7 @@ public class DeviceService {
 	 * 기기 ID 는 비밀이 아니므로 ID 만으로는 다른 사람의 푸시 토큰을 덮어쓸 수 없게 한다.
 	 */
 	public void updatePush(AuthUser user, String deviceSecret, @Nullable String expoPushToken) {
-		// ── [1단계] 기기: 토큰에 기기 있음 → 등록 기기 일치(404) → 기기 비밀키(403) ──
+		// ── [1단계] 기기: 토큰에 기기 있음 → 등록 기기 일치(400 DEVICE_NOT_FOUND) → 기기 비밀키(400 DEVICE_NOT_VERIFIED) ──
 		String tokenDeviceIdHash = user.getDeviceIdHash();
 		if (tokenDeviceIdHash == null) {
 			throw new BusinessException(UserErrorCode.DEVICE_NOT_IN_TOKEN);

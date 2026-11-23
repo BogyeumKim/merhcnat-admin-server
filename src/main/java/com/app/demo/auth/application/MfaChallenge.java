@@ -9,7 +9,7 @@ import lombok.Builder;
 import lombok.Getter;
 import org.jspecify.annotations.Nullable;
 
-/** MFA 안내: 사용 가능한 수단과 이후 단계에 쓸 챌린지 토큰 (200 MFA_REQUIRED 응답의 data). */
+/** MFA 안내: 사용 가능한 수단과 이후 단계에 쓸 챌린지 토큰 (200 step=MFA_REQUIRED 응답 본문). */
 @Getter
 @Builder(builderMethodName = "with", buildMethodName = "create")
 @AllArgsConstructor(access = AccessLevel.PRIVATE)

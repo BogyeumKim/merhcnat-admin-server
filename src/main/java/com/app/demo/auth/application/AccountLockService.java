@@ -23,7 +23,7 @@ import org.springframework.stereotype.Service;
 
 /**
  * 계정 상태 검사와 잠금 정책.
- * id/pw·OTP·현재 비밀번호 오류를 하나의 횟수로 합산하고, 한도에 도달하면 423 ACCOUNT_LOCKED 로 차단한다(관리자 해제).
+ * id/pw·OTP·현재 비밀번호 오류를 하나의 횟수로 합산하고, 한도에 도달하면 400 ACCOUNT_LOCKED 로 차단한다(관리자 해제).
  *
  * <p>비밀 값 비교는 "예약 → 비교 → 성공 시 환불" 순서로 한다. 비교하기 전에 오류 횟수를 원자적으로 +1 해 두므로
  * 동시 요청이 몰려도 한도(max)를 넘는 비교는 일어나지 않는다.
@@ -41,7 +41,7 @@ public class AccountLockService {
 
 	/**
 	 * 로그인 1단계의 비밀번호 확인. 아이디 존재·잠금 여부를 숨기기 위해 비밀번호가 틀리면 항상 같은
-	 * 401 INVALID_CREDENTIALS(data 없음)를 던지고, 잠금(423)은 비밀번호가 맞았을 때만 알려 준다.
+	 * 401 INVALID_CREDENTIALS(data 없음)를 던지고, 잠금(400 ACCOUNT_LOCKED)은 비밀번호가 맞았을 때만 알려 준다.
 	 */
 	public void verifyLoginPassword(User user, String password) {
 		String userId = user.getUserId();
@@ -61,7 +61,7 @@ public class AccountLockService {
 
 	/**
 	 * 비밀번호를 이미 확인한 단계(OTP·현재 비밀번호)의 비밀 값 확인. 틀리면 남은 횟수를 담은 호출자의 예외를,
-	 * 한도에 도달하면 423 을 던진다.
+	 * 한도에 도달하면 400 ACCOUNT_LOCKED 를 던진다.
 	 */
 	public void verifySecret(String userId, BooleanSupplier matches, IntFunction<BusinessException> onFailure) {
 		verifySecret(userId, () -> matches.getAsBoolean() ? Optional.of(Boolean.TRUE) : Optional.empty(), onFailure);
@@ -84,14 +84,14 @@ public class AccountLockService {
 		throw onFailure.apply(remaining);
 	}
 
-	/** 이미 잠긴 계정이면 423 (챌린지 단계 진입 시 확인. 비밀번호를 이미 확인한 뒤라 잠금 사실을 알려도 된다) */
+	/** 이미 잠긴 계정이면 400 ACCOUNT_LOCKED (챌린지 단계 진입 시 확인. 비밀번호를 이미 확인한 뒤라 잠금 사실을 알려도 된다) */
 	public void checkLocked(User user) {
 		if (user.isLocked(maxFailCount())) {
 			throw alreadyLocked(user.getUserId());
 		}
 	}
 
-	/** 정지(403 ACCOUNT_SUSPENDED)/삭제(없는 계정과 같은 401) 이용자 차단. 실패 횟수에는 합산하지 않는다. */
+	/** 정지(400 ACCOUNT_SUSPENDED)/삭제(없는 계정과 같은 401) 이용자 차단. 실패 횟수에는 합산하지 않는다. */
 	public void checkUsable(User user) {
 		Optional<ErrorCode> rejection = AccountPolicy.checkUsable(user);
 		if (rejection.isPresent()) {
@@ -112,7 +112,7 @@ public class AccountLockService {
 		return maxFailCount() - users.failCount(userId);
 	}
 
-	/** 한도에 도달한 시각을 기록하고 423 예외를 만든다. */
+	/** 한도에 도달한 시각을 기록하고 400 ACCOUNT_LOCKED 예외를 만든다. */
 	private BusinessException lockNow(String userId) {
 		LocalDateTime now = LocalDateTime.now(clock).withNano(0);
 		infos.markLocked(userId, now);
