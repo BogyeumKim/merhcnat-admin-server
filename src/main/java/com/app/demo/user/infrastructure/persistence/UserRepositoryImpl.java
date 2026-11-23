@@ -31,7 +31,7 @@ class UserRepositoryImpl implements UserRepository {
 		boolean tempPassword = e.getTmpPassword() != null && e.getTmpPassword() == 1;
 		User user = User.with()
 				.userId(e.getUserId())
-				.password(e.getPasswordEnc())
+				.password(e.getPassword())
 				.loginTypeCode(e.getLoginType())
 				.userType(e.getUserType())
 				.passwordFailCount(failCount)
@@ -72,14 +72,13 @@ class UserRepositoryImpl implements UserRepository {
 		mapper.update(null, new UpdateWrapper<UserEntity>().eq("user_id", userId).set("password_fail_count", 0));
 	}
 
-	/** 해시는 password_enc 에만 쓴다. 예전 password 컬럼은 MMS 호환용으로 건드리지 않는다. */
 	@Override
 	public void changePassword(String userId, String newPassword, LocalDateTime now) {
 		String newPasswordHash = PasswordHash.of(newPassword);
 		// MySQL 은 SET 을 왼쪽부터 순서대로 평가하므로 old3 ← old2 ← old1 ← 현재 ← 새 값 순으로 밀어야 값이 겹쳐 쓰이지 않는다.
 		mapper.update(null, new UpdateWrapper<UserEntity>().eq("user_id", userId)
-				.setSql("old_password3 = old_password2, old_password2 = old_password1, old_password1 = password_enc")
-				.set("password_enc", newPasswordHash).set("last_change_pw", now).set("tmp_password", 0));
+				.setSql("old_password3 = old_password2, old_password2 = old_password1, old_password1 = password")
+				.set("password", newPasswordHash).set("last_change_pw", now).set("tmp_password", 0));
 	}
 
 	/** 비어 있지 않은 이전 비밀번호만 최신순으로 모은다 */
