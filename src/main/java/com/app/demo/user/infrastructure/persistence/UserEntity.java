@@ -15,12 +15,17 @@ public class UserEntity {
 
 	@TableId(value = "user_id", type = IdType.INPUT)
 	private String userId;
+	/** 예전 비밀번호 컬럼. 새 코드는 읽거나 쓰지 않는다(MMS 호환용으로 남겨 둔다) */
 	private String password;
+	/** 비밀번호 해시({@link com.app.demo.user.domain.PasswordHash}) */
+	private String passwordEnc;
 	private Integer loginType;
 	private Integer userType;
 	private Integer passwordFailCount;
-	private String phoneNumber;
-	private String email;
+	/** KMS 암호문. {@link com.app.demo.global.crypto.KmsCipher} 로 복호화한다 */
+	private String phoneNumberEnc;
+	/** KMS 암호문. {@link com.app.demo.global.crypto.KmsCipher} 로 복호화한다 */
+	private String emailEnc;
 	private String totpSecret;
 	private LocalDateTime lastChangePw;
 	private String oldPassword1;
