@@ -1,5 +1,6 @@
 package com.app.demo.auth.api.dto;
 
+import com.app.demo.auth.domain.AccessToken;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -16,4 +17,8 @@ public class PasswordChangedResponse {
 
 	/** 새 Access-Token(JWT) */
 	private final String accessToken;
+
+	public static PasswordChangedResponse from(AccessToken token) {
+		return PasswordChangedResponse.with().accessToken(token.getValue()).create();
+	}
 }
