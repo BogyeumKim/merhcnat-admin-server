@@ -1,6 +1,6 @@
 package com.app.demo.global.exception;
 
-import com.app.demo.global.api.ApiResponse;
+import com.app.demo.global.api.ErrorResponse;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
@@ -43,7 +43,7 @@ public class EnvelopeErrorReportValve extends ErrorReportValve {
 			response.setCharacterEncoding(StandardCharsets.UTF_8);
 			Writer writer = response.getReporter();
 			if (writer != null) {
-				writer.write(jsonMapper.writeValueAsString(ApiResponse.error(errorCode)));
+				writer.write(jsonMapper.writeValueAsString(ErrorResponse.of(errorCode)));
 				response.finishResponse();
 			}
 		} catch (IOException | IllegalStateException e) {

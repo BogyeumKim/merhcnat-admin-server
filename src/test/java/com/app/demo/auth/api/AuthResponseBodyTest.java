@@ -31,7 +31,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-/** 토큰은 응답 헤더가 아니라 본문(data.accessToken)으로 내려간다. */
+/** 토큰은 응답 헤더가 아니라 본문(accessToken)으로 내려간다. */
 @SpringBootTest
 @AutoConfigureMockMvc
 class AuthResponseBodyTest {
@@ -62,16 +62,16 @@ class AuthResponseBodyTest {
 	}
 
 	@Test
-	@DisplayName("로그인 완료(SUCCESS)는 data.accessToken 으로 토큰을 주고 Access-Token 헤더는 없다")
+	@DisplayName("로그인 완료(SUCCESS)는 본문 accessToken 으로 토큰을 주고 Access-Token 헤더는 없다")
 	void loginSuccessPutsTokenInBody() throws Exception {
-		SessionResult session = new SessionResult(USER, 1, 1, DeviceState.MATCH, false, null, null);
-		given(loginService.login(any())).willReturn(new LoginStep.Completed(session, "issued.jwt.token"));
+		SessionResult session = SessionResult.with().userId(USER).loginType(1).userType(1).deviceState(DeviceState.MATCH).create();
+		given(loginService.login(any())).willReturn(LoginStep.Completed.of(session, "issued.jwt.token"));
 
 		mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON).content(LOGIN_BODY))
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.code").value("SUCCESS"))
-				.andExpect(jsonPath("$.data.userId").value(USER))
-				.andExpect(jsonPath("$.data.accessToken").value("issued.jwt.token"))
+				.andExpect(jsonPath("$.step").value("SUCCESS"))
+				.andExpect(jsonPath("$.userId").value(USER))
+				.andExpect(jsonPath("$.accessToken").value("issued.jwt.token"))
 				.andExpect(header().doesNotExist("Access-Token"));
 	}
 
@@ -79,16 +79,15 @@ class AuthResponseBodyTest {
 	@DisplayName("비밀번호 변경 성공은 data.accessToken 으로 새 토큰을 주고 Access-Token 헤더는 없다")
 	void passwordChangePutsNewTokenInBody() throws Exception {
 		AccessToken current = tokens.createAccessToken(USER, 1, "body-device");
-		sessions.save(USER, new Session(current.jti(), null, Instant.now()), Duration.ofMinutes(5));
+		sessions.save(USER, Session.with().jti(current.getJti()).issuedAt(Instant.now()).create(), Duration.ofMinutes(5));
 		given(passwordService.change(any(AuthUser.class), anyString(), anyString()))
-				.willReturn(new AccessToken("new.jwt.token", "new-jti", Instant.now().plusSeconds(60)));
+				.willReturn(AccessToken.with().value("new.jwt.token").jti("new-jti").expiresAt(Instant.now().plusSeconds(60)).create());
 
-		mvc.perform(put("/api/users/me/password").header("Authorization", "Bearer " + current.value())
+		mvc.perform(put("/api/users/me/password").header("Authorization", "Bearer " + current.getValue())
 						.contentType(MediaType.APPLICATION_JSON)
 						.content("{\"currentPassword\":\"Test1234!\",\"newPassword\":\"Abcd1234!\"}"))
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.code").value("SUCCESS"))
-				.andExpect(jsonPath("$.data.accessToken").value("new.jwt.token"))
+				.andExpect(jsonPath("$.accessToken").value("new.jwt.token"))
 				.andExpect(header().doesNotExist("Access-Token"));
 	}
 }

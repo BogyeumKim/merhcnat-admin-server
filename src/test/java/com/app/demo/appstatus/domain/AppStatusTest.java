@@ -14,11 +14,11 @@ class AppStatusTest {
 	private static final LocalDateTime T0 = LocalDateTime.of(2026, 11, 23, 2, 0);
 
 	private static AppStatus status(MaintenanceWindow... windows) {
-		return new AppStatus(List.of(windows), List.of());
+		return AppStatus.of(List.of(windows), List.of());
 	}
 
 	private static MaintenanceWindow window(int fromHour, int toHour) {
-		return new MaintenanceWindow(T0.withHour(fromHour), T0.withHour(toHour));
+		return MaintenanceWindow.of(T0.withHour(fromHour), T0.withHour(toHour));
 	}
 
 	@Test

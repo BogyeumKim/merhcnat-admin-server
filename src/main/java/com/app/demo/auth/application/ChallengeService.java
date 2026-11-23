@@ -43,26 +43,32 @@ class ChallengeService {
 
 	String issueMfa(String userId, DeviceInfo device) {
 		String jti = newJti(userId);
-		return tokens.createMfaToken(userId, jti, device, otpProps.challengeMaxSeconds());
+		return tokens.createMfaToken(userId, jti, device, otpProps.getChallengeMaxSeconds());
 	}
 
 	PasswordChangeChallenge issuePasswordChange(String userId, DeviceInfo device, PasswordChangeReason reason) {
 		String jti = newJti(userId);
-		return new PasswordChangeChallenge(userId,
-				tokens.createPasswordChangeToken(userId, jti, device, otpProps.challengeTtlSeconds()), reason);
+		String token = tokens.createPasswordChangeToken(userId, jti, device, otpProps.getChallengeTtlSeconds());
+		return PasswordChangeChallenge.with()
+				.userId(userId)
+				.challengeToken(token)
+				.reason(reason)
+				.create();
 	}
 
 	Challenge loadMfa(String token) {
-		return load(tokens.parseMfaToken(token));
+		Optional<MfaClaims> parsed = tokens.parseMfaToken(token);
+		return load(parsed);
 	}
 
 	Challenge loadPasswordChange(String token) {
-		return load(tokens.parsePasswordChangeToken(token));
+		Optional<MfaClaims> parsed = tokens.parsePasswordChangeToken(token);
+		return load(parsed);
 	}
 
 	/** 현재 jti 와 일치할 때만 소진한다. 동시 요청으로 같은 토큰을 두 번 쓰면 뒤 요청은 만료 처리된다. */
 	void consume(Challenge challenge) {
-		if (!infos.consumeMfa(challenge.user().userId(), challenge.claims().jti())) {
+		if (!infos.consumeMfa(challenge.getUser().getUserId(), challenge.getClaims().getJti())) {
 			throw expired();
 		}
 	}
@@ -71,22 +77,29 @@ class ChallengeService {
 	private String newJti(String userId) {
 		infos.findOrCreate(userId);
 		String jti = UUID.randomUUID().toString();
-		infos.issueChallenge(userId, jti, LocalDateTime.now(clock).plusSeconds(otpProps.challengeTtlSeconds()));
+		LocalDateTime expiresAt = LocalDateTime.now(clock).plusSeconds(otpProps.getChallengeTtlSeconds());
+		infos.issueChallenge(userId, jti, expiresAt);
 		return jti;
 	}
 
 	/** 서명/만료 → 사용자 존재 → 잠금 → 이용 가능 → 최신 jti·유효 시각. 잠금/정지 외에는 모두 만료로 처리한다. */
 	private Challenge load(Optional<MfaClaims> parsed) {
 		MfaClaims claims = parsed.orElseThrow(ChallengeService::expired);
-		AuthAuditContext.subject(IdMasking.mask(claims.userId()), Sha256.hex(claims.device().deviceId()));
-		User user = users.findById(claims.userId()).orElseThrow(ChallengeService::expired);
+		String maskedUserId = IdMasking.mask(claims.getUserId());
+		String deviceIdHash = Sha256.hex(claims.getDevice().getDeviceId());
+		AuthAuditContext.subject(maskedUserId, deviceIdHash);
+		User user = users.findById(claims.getUserId()).orElseThrow(ChallengeService::expired);
 		accountLock.checkLocked(user);
 		accountLock.checkUsable(user);
-		UserInfo info = infos.findOrCreate(user.userId());
-		if (!info.isCurrentChallenge(claims.jti(), LocalDateTime.now(clock))) {
+		UserInfo info = infos.findOrCreate(user.getUserId());
+		if (!info.isCurrentChallenge(claims.getJti(), LocalDateTime.now(clock))) {
 			throw expired(); // 이미 사용했거나, 더 새로운 로그인이 발급됐거나, 유효 시각이 지남
 		}
-		return new Challenge(claims, user, info);
+		return Challenge.with()
+				.claims(claims)
+				.user(user)
+				.info(info)
+				.create();
 	}
 
 	/** 서명 오류·만료·소진·더 새로운 로그인 발급 등은 모두 "처음부터 다시 로그인" 으로 안내한다. */

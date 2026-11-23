@@ -19,7 +19,7 @@ class PasswordChangePolicy {
 
 	/** 변경이 필요하면 그 이유, 아니면 empty */
 	Optional<PasswordChangeReason> reasonFor(User user) {
-		return user.passwordChangeReason(LocalDateTime.now(clock), authProps.passwordExpireDays());
+		return user.passwordChangeReason(LocalDateTime.now(clock), authProps.getPasswordExpireDays());
 	}
 
 	boolean isRequired(User user) {

@@ -2,36 +2,54 @@ package com.app.demo.user.domain;
 
 import com.app.demo.global.security.Sha256;
 import java.time.LocalDateTime;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
 import org.jspecify.annotations.Nullable;
 
 /**
  * 사용자 부가정보 애그리게이트(user 와 1:1). 인증 진행 상태와 등록 기기를 판단하는 데 필요한 값만 가진다.
  * (알림 설정 컬럼 등은 해당 기능이 생길 때 확장)
- *
- * @param deviceId       현재 등록된 기기 (1 사용자 = 1 기기)
- * @param lastTotpStep   마지막 사용된 TOTP time-step (재사용 방지)
- * @param deviceSecretHash 등록 기기 비밀키의 SHA-256 hex. 원문은 기기(앱 SecureStore)에만 있다
- * @param mfaJti         현재 유효한 MFA 챌린지 토큰 ID. null 이면 유효한 챌린지 없음
- * @param mfaExpiresAt   현재 챌린지의 실제 유효 시각. MFA 챌린지는 OTP 발송 때마다 연장된다(토큰 만료가 절대 상한)
- * @param otpCodeHash    SMS/카카오 OTP 해시. 평문은 저장하지 않는다
- * @param otpChannel     SMS | KAKAO | EMAIL
- * @param lockedAt       계정이 잠긴 시각 (잠금 화면 표시용)
- * @param lastOtpChannel 마지막으로 인증에 성공한 수단 (TOTP | KAKAO | SMS | EMAIL, "최근 사용" 표시용)
- * @param otpSendCount   현재 MFA 챌린지에서 보낸 OTP 횟수(수단 합산, 새 챌린지 발급 시 0)
  */
-public record UserInfo(
-		String userId,
-		@Nullable String deviceId,
-		@Nullable String deviceSecretHash,
-		@Nullable Long lastTotpStep,
-		@Nullable String mfaJti,
-		@Nullable LocalDateTime mfaExpiresAt,
-		@Nullable String otpCodeHash,
-		@Nullable String otpChannel,
-		@Nullable LocalDateTime otpExpiresAt,
-		@Nullable LocalDateTime lockedAt,
-		@Nullable String lastOtpChannel,
-		int otpSendCount) {
+@Getter
+@Builder(builderMethodName = "with", buildMethodName = "create")
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
+public class UserInfo {
+
+	private final String userId;
+
+	/** 현재 등록된 기기 (1 사용자 = 1 기기) */
+	private final @Nullable String deviceId;
+
+	/** 등록 기기 비밀키의 SHA-256 hex. 원문은 기기(앱 SecureStore)에만 있다 */
+	private final @Nullable String deviceSecretHash;
+
+	/** 마지막 사용된 TOTP time-step (재사용 방지) */
+	private final @Nullable Long lastTotpStep;
+
+	/** 현재 유효한 MFA 챌린지 토큰 ID. null 이면 유효한 챌린지 없음 */
+	private final @Nullable String mfaJti;
+
+	/** 현재 챌린지의 실제 유효 시각. MFA 챌린지는 OTP 발송 때마다 연장된다(토큰 만료가 절대 상한) */
+	private final @Nullable LocalDateTime mfaExpiresAt;
+
+	/** SMS/카카오 OTP 해시. 평문은 저장하지 않는다 */
+	private final @Nullable String otpCodeHash;
+
+	/** SMS | KAKAO | EMAIL */
+	private final @Nullable String otpChannel;
+
+	private final @Nullable LocalDateTime otpExpiresAt;
+
+	/** 계정이 잠긴 시각 (잠금 화면 표시용) */
+	private final @Nullable LocalDateTime lockedAt;
+
+	/** 마지막으로 인증에 성공한 수단 (TOTP | KAKAO | SMS | EMAIL, "최근 사용" 표시용) */
+	private final @Nullable String lastOtpChannel;
+
+	/** 현재 MFA 챌린지에서 보낸 OTP 횟수(수단 합산, 새 챌린지 발급 시 0) */
+	private final int otpSendCount;
 
 	/** 이 기기가 현재 등록된 기기인지 */
 	public boolean hasDevice(String candidateDeviceId) {

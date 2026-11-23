@@ -34,7 +34,13 @@ public class SessionService {
 	/** 로그인 최종 성공 시 세션 시작(기존 세션 교체) */
 	void start(String userId, AccessToken token, String deviceIdHash) {
 		Instant now = clock.instant();
-		store.save(userId, new Session(token.jti(), deviceIdHash, now), ttlUntil(token.expiresAt(), now));
+		Session session = Session.with()
+				.jti(token.getJti())
+				.deviceIdHash(deviceIdHash)
+				.issuedAt(now)
+				.create();
+		Duration ttl = ttlUntil(token.getExpiresAt(), now);
+		store.save(userId, session, ttl);
 	}
 
 	/**
@@ -46,11 +52,12 @@ public class SessionService {
 	 * @return 거부 사유. 통과하면 empty (SESSION_EXPIRED: 세션 없음 / SESSION_REPLACED: 다른 로그인으로 교체됨)
 	 */
 	public Optional<AuthErrorCode> verify(AuthUser user) {
-		Optional<Session> session = store.findAndExtend(user.userId(), ttlUntil(user.expiresAt(), clock.instant()));
+		Duration ttl = ttlUntil(user.getExpiresAt(), clock.instant());
+		Optional<Session> session = store.findAndExtend(user.getUserId(), ttl);
 		if (session.isEmpty()) {
 			return Optional.of(AuthErrorCode.SESSION_EXPIRED);
 		}
-		if (!session.get().isCurrent(user.jti())) {
+		if (!session.get().isCurrent(user.getJti())) {
 			return Optional.of(AuthErrorCode.SESSION_REPLACED);
 		}
 		return Optional.empty();
@@ -63,7 +70,7 @@ public class SessionService {
 
 	/** min(무활동 만료, 토큰 남은 수명). 최소 1초 */
 	private Duration ttlUntil(Instant tokenExpiresAt, Instant now) {
-		Duration idle = Duration.ofMinutes(authProps.sessionIdleMinutes());
+		Duration idle = Duration.ofMinutes(authProps.getSessionIdleMinutes());
 		Duration remaining = Duration.between(now, tokenExpiresAt);
 		Duration ttl = remaining.compareTo(idle) < 0 ? remaining : idle;
 		return ttl.isNegative() || ttl.isZero() ? Duration.ofSeconds(1) : ttl;

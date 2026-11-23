@@ -49,7 +49,7 @@ class AppStatusRepositoryImplTest {
 		insert(BASE.plusDays(1), BASE.plusDays(1).plusHours(2), 1);
 
 		assertThat(windowsInTestRange())
-				.containsExactly(new MaintenanceWindow(BASE.plusDays(1), BASE.plusDays(1).plusHours(2)));
+				.containsExactly(MaintenanceWindow.of(BASE.plusDays(1), BASE.plusDays(1).plusHours(2)));
 	}
 
 	@Test
@@ -63,7 +63,7 @@ class AppStatusRepositoryImplTest {
 	/** 테스트 구간(BASE 이후 시작) 행만 걸러 본다 */
 	private List<MaintenanceWindow> windowsInTestRange() {
 		return repository.findEnabledMaintenanceWindowsEndingAfter(BASE).stream()
-				.filter(window -> !window.from().isBefore(BASE.minusDays(1)))
+				.filter(window -> !window.getFrom().isBefore(BASE.minusDays(1)))
 				.toList();
 	}
 

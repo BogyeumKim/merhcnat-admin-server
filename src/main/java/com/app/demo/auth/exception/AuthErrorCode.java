@@ -14,6 +14,7 @@ public enum AuthErrorCode implements ErrorCode {
 	INVALID_CREDENTIALS(HttpStatus.UNAUTHORIZED, "INVALID_CREDENTIALS", "아이디 또는 비밀번호가 올바르지 않습니다."),
 	ACCOUNT_LOCKED(HttpStatus.BAD_REQUEST, "ACCOUNT_LOCKED", "인증 오류가 누적되어 계정이 잠겼습니다. 관리자에게 문의해 주세요."),
 	ACCOUNT_SUSPENDED(HttpStatus.BAD_REQUEST, "ACCOUNT_SUSPENDED", "정지된 사용자입니다. 고객센터로 문의해 주세요."),
+	LOGIN_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "LOGIN_NOT_ALLOWED", "로그인 권한이 없습니다."),
 	UNSUPPORTED_LOGIN_TYPE(HttpStatus.BAD_REQUEST, "UNSUPPORTED_LOGIN_TYPE", "지원하지 않는 인증 유형입니다."),
 
 	// 로그인 세션 (Redis, 사용자당 최신 Access-Token 1개만 유효)

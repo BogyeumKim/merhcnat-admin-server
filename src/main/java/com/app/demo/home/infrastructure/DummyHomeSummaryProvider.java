@@ -16,6 +16,16 @@ class DummyHomeSummaryProvider implements HomeSummaryProvider {
 
 	@Override
 	public HomeSummary summaryOf(String userId) {
-		return new HomeSummary("테스트 가맹점", 1_250_000L, 38, 2, 3_480_000L, LocalDate.now(clock).plusDays(1), 28_430_000L, true);
+		LocalDate nextDepositDate = LocalDate.now(clock).plusDays(1);
+		return HomeSummary.with()
+				.storeName("테스트 가맹점")
+				.todaySales(1_250_000L)
+				.approvalCount(38)
+				.cancellationCount(2)
+				.nextDepositAmount(3_480_000L)
+				.nextDepositDate(nextDepositDate)
+				.monthSales(28_430_000L)
+				.prepayAvailable(true)
+				.create();
 	}
 }

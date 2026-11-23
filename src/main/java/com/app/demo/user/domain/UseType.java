@@ -17,13 +17,13 @@ public enum UseType {
 
 	private final int code;
 
-	/** DB 코드 → 상태. NULL 이나 정의되지 않은 값은 사용(ACTIVE)으로 본다. */
-	public static UseType fromCode(@Nullable Integer code) {
+	/** DB 코드 → 상태. NULL 이나 정의되지 않은 값은 null 이고, 로그인에서 막는다. */
+	public static @Nullable UseType fromCode(@Nullable Integer code) {
 		for (UseType t : values()) {
 			if (code != null && t.code == code) {
 				return t;
 			}
 		}
-		return ACTIVE;
+		return null;
 	}
 }

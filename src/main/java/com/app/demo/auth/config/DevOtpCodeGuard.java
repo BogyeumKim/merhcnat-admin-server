@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
 class DevOtpCodeGuard {
 
 	DevOtpCodeGuard(OtpProperties otpProps, Environment environment) {
-		String fixed = otpProps.devFixedCode();
+		String fixed = otpProps.getDevFixedCode();
 		boolean enabled = fixed != null && !fixed.isBlank();
 		if (enabled && !environment.acceptsProfiles(Profiles.of("local"))) {
 			throw new IllegalStateException("otp.dev-fixed-code 는 local 프로필에서만 사용할 수 있습니다. 운영 설정에서 제거하세요.");

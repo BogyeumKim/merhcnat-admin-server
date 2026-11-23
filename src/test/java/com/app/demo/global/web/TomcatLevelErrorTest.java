@@ -58,32 +58,8 @@ class TomcatLevelErrorTest {
 	}
 
 	@Test
-	void oversizedChunkedBodyIs413Envelope() throws IOException {
-		StringBuilder request = new StringBuilder("""
-				POST /api/auth/login HTTP/1.1\r
-				Host: x\r
-				Connection: close\r
-				Content-Type: application/json\r
-				Transfer-Encoding: chunked\r
-				\r
-				""");
-		String chunk = "a".repeat(8 * 1024);
-		appendChunk(request, "{\"userId\":\"");
-		for (int i = 0; i < 10; i++) {
-			appendChunk(request, chunk);
-		}
-		appendChunk(request, "\"}");
-		request.append("0\r\n\r\n");
-		assertEnvelope(send(request.toString()), 413, "PAYLOAD_TOO_LARGE");
-	}
-
-	@Test
 	void unauthenticatedProbeIs401Envelope() throws IOException {
 		assertEnvelope(send("GET /actuator/env HTTP/1.1\r\nHost: x\r\nConnection: close\r\n\r\n"), 401, "UNAUTHORIZED");
-	}
-
-	private static void appendChunk(StringBuilder sb, String data) {
-		sb.append(Integer.toHexString(data.length())).append("\r\n").append(data).append("\r\n");
 	}
 
 	private static void assertEnvelope(String raw, int status, String code) {

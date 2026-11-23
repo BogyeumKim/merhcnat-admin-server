@@ -48,7 +48,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
 	/** 토큰이 현재 세션의 토큰이면 인증, 아니면 거부 사유를 남긴다. */
 	private void authenticateIfCurrent(HttpServletRequest request, AuthUser user) {
-		AuthAuditContext.subject(IdMasking.mask(user.userId()), user.deviceIdHash());
+		AuthAuditContext.subject(IdMasking.mask(user.getUserId()), user.getDeviceIdHash());
 		try {
 			sessions.verify(user).ifPresentOrElse(
 					reason -> SecurityErrorHandler.reject(request, reason),

@@ -19,7 +19,7 @@ class HmacOtpHasher implements OtpHasher {
 	private final byte[] secret;
 
 	HmacOtpHasher(OtpProperties props) {
-		this.secret = props.hashSecret().getBytes(StandardCharsets.UTF_8);
+		this.secret = props.getHashSecret().getBytes(StandardCharsets.UTF_8);
 	}
 
 	@Override

@@ -28,22 +28,26 @@ public class TempPasswordService {
 	private final Clock clock;
 
 	public LoginStep.Completed changeTempPassword(TempPasswordChangeCommand cmd) {
-		Challenge ch = challenges.loadPasswordChange(cmd.challengeToken());
-		User user = ch.user();
+		// ── [1단계] 챌린지: 서명·만료 → 잠금·이용 가능 → 아직 변경이 필요한 상태 ──
+		Challenge ch = challenges.loadPasswordChange(cmd.getChallengeToken());
+		User user = ch.getUser();
 		if (!passwordChangePolicy.isRequired(user)) {
 			throw new BusinessException(AuthErrorCode.CHALLENGE_EXPIRED); // 이미 변경을 마쳐 변경이 필요한 상태가 아님
 		}
-		checkCurrentPassword(user, cmd.currentPassword());
-		passwordService.checkNewPassword(user, cmd.newPassword());
 
+		// ── [2단계] 비밀번호: 현재 비밀번호(오류 합산) → 새 비밀번호 규칙·재사용 ──
+		checkCurrentPassword(user, cmd.getCurrentPassword());
+		passwordService.checkNewPassword(user, cmd.getNewPassword());
+
+		// ── [3단계] 변경: 챌린지 소진 → 저장 → 로그인 완료 ──
 		challenges.consume(ch); // 동시 요청 방지: 소진에 성공한 요청만 변경한다
-		users.changePassword(user.userId(), cmd.newPassword(), LocalDateTime.now(clock));
-		User changed = users.findById(user.userId()).orElse(user);
-		return completion.completeVerified(changed, ch.claims().device());
+		users.changePassword(user.getUserId(), cmd.getNewPassword(), LocalDateTime.now(clock));
+		User changed = users.findById(user.getUserId()).orElse(user);
+		return completion.completeVerified(changed, ch.getClaims().getDevice());
 	}
 
 	private void checkCurrentPassword(User user, String currentPassword) {
-		accountLock.verifySecret(user.userId(), () -> user.passwordMatches(currentPassword),
+		accountLock.verifySecret(user.getUserId(), () -> user.passwordMatches(currentPassword),
 				remaining -> new BusinessException(AuthErrorCode.CURRENT_PASSWORD_INVALID, ErrorData.remaining(remaining)));
 	}
 }

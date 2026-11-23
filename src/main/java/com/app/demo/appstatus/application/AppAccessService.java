@@ -35,22 +35,22 @@ public class AppAccessService {
 				? status.activeMaintenance(now)
 				: Optional.empty();
 		if (maintenance.isPresent()) {
-			return new AccessDecision.UnderMaintenance(maintenance.get());
+			return AccessDecision.UnderMaintenance.of(maintenance.get());
 		}
 		if (platformHeader == null && versionHeader == null) {
-			return new AccessDecision.Allowed();
+			return AccessDecision.Allowed.of();
 		}
 		if (platformHeader == null || versionHeader == null) {
-			return new AccessDecision.InvalidClientHeaders();
+			return AccessDecision.InvalidClientHeaders.of();
 		}
 		Optional<AppPlatform> platform = AppPlatform.parse(platformHeader);
 		Optional<AppVersion> version = AppVersion.parse(versionHeader);
 		if (platform.isEmpty() || version.isEmpty()) {
-			return new AccessDecision.InvalidClientHeaders();
+			return AccessDecision.InvalidClientHeaders.of();
 		}
 		return status.requiredVersion(platform.get(), now)
-				.filter(required -> version.get().isLowerThan(required.version()))
-				.<AccessDecision>map(AccessDecision.UpdateRequired::new)
-				.orElseGet(AccessDecision.Allowed::new);
+				.filter(required -> version.get().isLowerThan(required.getVersion()))
+				.<AccessDecision>map(AccessDecision.UpdateRequired::of)
+				.orElseGet(AccessDecision.Allowed::of);
 	}
 }

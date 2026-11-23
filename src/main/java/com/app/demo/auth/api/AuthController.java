@@ -1,38 +1,39 @@
 package com.app.demo.auth.api;
 
-import com.app.demo.auth.api.dto.AuthSessionResponse;
 import com.app.demo.auth.api.dto.AuthStepResponse;
 import com.app.demo.auth.api.dto.LoginRequest;
-import com.app.demo.auth.api.dto.MfaChallengeResponse;
 import com.app.demo.auth.api.dto.OtpSendRequest;
 import com.app.demo.auth.api.dto.OtpSentResponse;
 import com.app.demo.auth.api.dto.OtpVerifyRequest;
-import com.app.demo.auth.api.dto.PasswordChangeRequiredResponse;
 import com.app.demo.auth.api.dto.TempPasswordChangeRequest;
+import com.app.demo.auth.application.LoginCommand;
 import com.app.demo.auth.application.LoginService;
 import com.app.demo.auth.application.LoginStep;
+import com.app.demo.auth.application.OtpSendCommand;
+import com.app.demo.auth.application.OtpSentResult;
 import com.app.demo.auth.application.OtpService;
+import com.app.demo.auth.application.OtpVerifyCommand;
+import com.app.demo.auth.application.TempPasswordChangeCommand;
 import com.app.demo.auth.application.TempPasswordService;
-import com.app.demo.global.api.ApiResponse;
-import com.app.demo.global.security.AuthAuditContext;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * 로그인(2단계 인증) API. 각 단계가 성공하면 HTTP 200 이고 code 로 다음 단계를 구분한다. 실패만 4xx/5xx 다.
+ * 로그인(2단계 인증) API. 각 단계가 성공하면 HTTP 200 이고 step 으로 다음 단계를 구분한다. 실패는 4xx/5xx + {@code ErrorResponse} 다.
  * <ul>
- *   <li>SUCCESS                  : 로그인 완료. data.accessToken 을 이후 요청의 Bearer 토큰으로 쓴다</li>
- *   <li>MFA_REQUIRED             : id/pw 통과, OTP 필요. data.challengeToken 으로 otp/send·otp/verify 진행</li>
- *   <li>PASSWORD_CHANGE_REQUIRED : 임시비밀번호. data.challengeToken 으로 {@code /password/temp} 호출</li>
+ *   <li>SUCCESS                  : 로그인 완료. accessToken 을 이후 요청의 Bearer 토큰으로 쓴다</li>
+ *   <li>MFA_REQUIRED             : id/pw 통과, OTP 필요. challengeToken 으로 otp/send·otp/verify 진행</li>
+ *   <li>PASSWORD_CHANGE_REQUIRED : 임시비밀번호. challengeToken 으로 {@code /password/temp} 호출</li>
  * </ul>
  */
 @RestController
-@RequestMapping("/api/auth")
 @RequiredArgsConstructor
+@Slf4j
 public class AuthController {
 
 	private final LoginService loginService;
@@ -40,46 +41,49 @@ public class AuthController {
 	private final TempPasswordService tempPasswordService;
 
 	/** 1단계: id/pw + 기기정보 검증 */
-	@PostMapping("/login")
-	public ApiResponse<AuthStepResponse> login(@Valid @RequestBody LoginRequest request) {
-		return toResponse(loginService.login(request.toCommand()));
+	@PostMapping(value = "/api/auth/login", consumes = MediaType.APPLICATION_JSON_VALUE)
+	public AuthStepResponse login(@Valid @RequestBody LoginRequest request) {
+		log.info("Login received");
+
+		LoginCommand command = request.toCommand();
+		LoginStep step = loginService.login(command);
+
+		return LoginStepResponse.from(step);
 	}
 
 	/** 카카오/SMS/이메일 OTP 발송 */
-	@PostMapping("/otp/send")
-	public ApiResponse<OtpSentResponse> sendOtp(@Valid @RequestBody OtpSendRequest request) {
-		return ApiResponse.ok(OtpSentResponse.from(otpService.sendOtp(request.toCommand())));
+	@PostMapping(value = "/api/auth/otp/send", consumes = MediaType.APPLICATION_JSON_VALUE)
+	public OtpSentResponse sendOtp(@Valid @RequestBody OtpSendRequest request) {
+		log.info("OTP send received");
+
+		OtpSendCommand command = request.toCommand();
+		OtpSentResult result = otpService.sendOtp(command);
+
+		return OtpSentResponse.from(result);
 	}
 
 	/** OTP 검증. 통과하면 로그인 완료 (이 시점에 기기가 등록/교체된다) */
-	@PostMapping("/otp/verify")
-	public ApiResponse<AuthStepResponse> verifyOtp(@Valid @RequestBody OtpVerifyRequest request) {
-		return toResponse(otpService.verifyOtp(request.toCommand()));
+	@PostMapping(value = "/api/auth/otp/verify", consumes = MediaType.APPLICATION_JSON_VALUE)
+	public AuthStepResponse verifyOtp(@Valid @RequestBody OtpVerifyRequest request) {
+		log.info("OTP verify received");
+
+		OtpVerifyCommand command = request.toCommand();
+		LoginStep step = otpService.verifyOtp(command);
+
+		return LoginStepResponse.from(step);
 	}
 
 	/**
 	 * 임시비밀번호 변경 (challengeToken 필요, Bearer 불필요). 성공하면 로그인 완료.
 	 * 400 CURRENT_PASSWORD_INVALID(5회 합산 잠금) / PASSWORD_POLICY_VIOLATION, 409 PASSWORD_REUSED, 401 CHALLENGE_EXPIRED, 423 ACCOUNT_LOCKED
 	 */
-	@PostMapping("/password/temp")
-	public ApiResponse<AuthStepResponse> changeTempPassword(
-			@Valid @RequestBody TempPasswordChangeRequest request) {
-		return toResponse(tempPasswordService.changeTempPassword(request.toCommand()));
-	}
+	@PostMapping(value = "/api/auth/password/temp", consumes = MediaType.APPLICATION_JSON_VALUE)
+	public AuthStepResponse changeTempPassword(@Valid @RequestBody TempPasswordChangeRequest request) {
+		log.info("Temp password change received");
 
-	/** 단계 결과 → 200 응답 본문. 로그인 완료면 data 에 accessToken 이 담긴다. */
-	private static ApiResponse<AuthStepResponse> toResponse(LoginStep step) {
-		return switch (step) {
-			case LoginStep.Completed(var session, var accessToken) -> ApiResponse.ok(AuthSessionResponse.from(session, accessToken));
-			case LoginStep.MfaRequired(var challenge) -> nextStep(AuthStepCode.MFA_REQUIRED,
-					AuthStepCode.MFA_REQUIRED.getMessage(), MfaChallengeResponse.from(challenge));
-			case LoginStep.PasswordChangeRequired(var challenge) -> nextStep(AuthStepCode.PASSWORD_CHANGE_REQUIRED,
-					AuthStepCode.passwordChangeMessage(challenge.reason()), PasswordChangeRequiredResponse.from(challenge));
-		};
-	}
+		TempPasswordChangeCommand command = request.toCommand();
+		LoginStep step = tempPasswordService.changeTempPassword(command);
 
-	private static ApiResponse<AuthStepResponse> nextStep(AuthStepCode code, String message, AuthStepResponse data) {
-		AuthAuditContext.result(code.name()); // 200 이지만 로그인 미완료 단계임을 감사 로그에 구분해 남긴다
-		return ApiResponse.of(code.name(), message, data);
+		return LoginStepResponse.from(step);
 	}
 }

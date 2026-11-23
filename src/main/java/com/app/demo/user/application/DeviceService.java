@@ -1,13 +1,16 @@
 package com.app.demo.user.application;
 
 import com.app.demo.global.exception.BusinessException;
+import com.app.demo.global.exception.ErrorCode;
 import com.app.demo.global.security.AuthUser;
-import com.app.demo.global.security.Sha256;
 import com.app.demo.user.domain.UserInfo;
 import com.app.demo.user.domain.UserInfoRepository;
+import com.app.demo.user.domain.policy.DevicePolicy;
 import com.app.demo.user.exception.UserErrorCode;
 import java.time.Clock;
 import java.time.LocalDateTime;
+import java.util.Objects;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Service;
@@ -16,8 +19,6 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 public class DeviceService {
-
-	private static final int MAX_PUSH_TOKEN_LENGTH = 255;
 
 	private final UserInfoRepository infos;
 	private final Clock clock;
@@ -28,38 +29,31 @@ public class DeviceService {
 	 * 기기 ID 는 비밀이 아니므로 ID 만으로는 다른 사람의 푸시 토큰을 덮어쓸 수 없게 한다.
 	 */
 	public void updatePush(AuthUser user, String deviceSecret, @Nullable String expoPushToken) {
-		String registeredDeviceId = requireVerifiedDevice(user, deviceSecret);
+		// ── [1단계] 기기: 토큰에 기기 있음 → 등록 기기 일치(404) → 기기 비밀키(403) ──
+		String tokenDeviceIdHash = user.getDeviceIdHash();
+		if (tokenDeviceIdHash == null) {
+			throw new BusinessException(UserErrorCode.DEVICE_NOT_IN_TOKEN);
+		}
+		UserInfo info = infos.findOrCreate(user.getUserId());
+		Optional<ErrorCode> deviceRejection = DevicePolicy.checkRegisteredDevice(tokenDeviceIdHash, info, deviceSecret);
+		if (deviceRejection.isPresent()) {
+			throw new BusinessException(deviceRejection.orElseThrow());
+		}
+		// 등록 기기가 없으면 checkRegisteredDevice 가 DEVICE_NOT_FOUND 로 거절했다.
+		String registeredDeviceId = Objects.requireNonNull(info.getDeviceId());
+
+		// ── [2단계] 푸시 토큰: 보낸 값 없음 → 형식 → 저장 ──
 		if (expoPushToken == null || expoPushToken.isBlank()) {
 			return; // 갱신할 값 없음
 		}
 		String token = expoPushToken.trim();
-		if (!isExpoPushToken(token)) {
-			throw new BusinessException(UserErrorCode.PUSH_TOKEN_INVALID);
+		Optional<ErrorCode> tokenRejection = DevicePolicy.checkPushToken(token);
+		if (tokenRejection.isPresent()) {
+			throw new BusinessException(tokenRejection.orElseThrow());
 		}
-		if (!infos.updatePush(user.userId(), registeredDeviceId, token, LocalDateTime.now(clock))) {
+		LocalDateTime now = LocalDateTime.now(clock);
+		if (!infos.updatePush(user.getUserId(), registeredDeviceId, token, now)) {
 			throw new BusinessException(UserErrorCode.DEVICE_NOT_FOUND);
 		}
-	}
-
-	/** 토큰의 기기가 지금 등록된 기기인지(404), 기기 비밀키가 맞는지(403) 확인하고 등록 기기 ID 를 돌려준다. */
-	private String requireVerifiedDevice(AuthUser user, String deviceSecret) {
-		if (user.deviceIdHash() == null) {
-			throw new BusinessException(UserErrorCode.DEVICE_NOT_IN_TOKEN);
-		}
-		UserInfo info = infos.findOrCreate(user.userId());
-		String registeredDeviceId = info.deviceId();
-		if (registeredDeviceId == null || !Sha256.hex(registeredDeviceId).equals(user.deviceIdHash())) {
-			throw new BusinessException(UserErrorCode.DEVICE_NOT_FOUND);
-		}
-		if (!info.isTrustedDevice(registeredDeviceId, deviceSecret)) {
-			throw new BusinessException(UserErrorCode.DEVICE_NOT_VERIFIED);
-		}
-		return registeredDeviceId;
-	}
-
-	/** Expo 푸시 토큰 형식인지 (임의 문자열 저장 방지) */
-	private static boolean isExpoPushToken(String token) {
-		boolean expoPrefix = token.startsWith("ExponentPushToken[") || token.startsWith("ExpoPushToken[");
-		return expoPrefix && token.length() <= MAX_PUSH_TOKEN_LENGTH;
 	}
 }
